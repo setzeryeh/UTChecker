@@ -12,7 +12,12 @@ namespace UTChecker
     public partial class TDS_Parser
     {
 
-        private List<string> ReadAllModuleNames(string a_sSummaryReportFile)
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sSummaryReportFile"></param>
+        /// <returns></returns>
+        public List<string> ReadAllModuleNames(string a_sSummaryReportFile)
         {
             string sFuncName = "[ReadSummaryModuleTable]";
 
@@ -41,6 +46,8 @@ namespace UTChecker
 
             try
             {
+                
+
                 // Open the specified EXCEL file.
                 excelBook = g_excelApp.Workbooks.Open(a_sSummaryReportFile, 0, true, 6, "", "", true,
                     Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
@@ -85,7 +92,24 @@ namespace UTChecker
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sModuleName"></param>
+        /// <param name="lsModuleNames"></param>
+        /// <returns></returns>
+        public static int GetModuleId(string a_sModuleName, List<string> lsModuleNames)
+        {
+            a_sModuleName = a_sModuleName.Replace("_", " ");
 
+            for (int i = 0; i < lsModuleNames.Count; i++)
+            {
+                if (a_sModuleName == lsModuleNames[i])
+                    return i+1;
+            }
+
+            return -1;
+        }
 
 
 

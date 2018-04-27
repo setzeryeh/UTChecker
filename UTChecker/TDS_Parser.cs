@@ -15,8 +15,7 @@ namespace UTChecker
         private MainForm g_MF = null;
 
         private LoggerForm g_LF = null;
-
-
+        
 
         /// <summary>
         /// Constructor
@@ -93,36 +92,6 @@ namespace UTChecker
         }
 
 
-        /// <summary>
-        /// Init all variables
-        /// </summary>
-        /// <returns></returns>
-        private bool InitializeVariable()
-        {
-            string sFuncName = "[Init]";
-
-            // init the list of modules
-            g_lsModules = new List<string>();
-
-            // get the handler for excel
-            g_excelApp = new Excel.Application
-            {
-                DisplayAlerts = false
-            };
-
-            // Initialize ...
-            g_lsTDSFiles = new List<string>();
-
-            // New the list for storing the data read.
-            g_tTestCaseTable.ltItems = new List<TestCaseItem>();
-
-            g_lsModuleInfo = new List<ModuleInfo>();
-            g_lsModuleInfo.Clear();
-
-            Logger.Print(sFuncName, "Done.");
-            
-            return true;
-        }
 
 
         /// <summary>
@@ -207,6 +176,8 @@ namespace UTChecker
             // prepare summary report
             string sSummaryReport = PrepareSummaryReport(g_sOutputPath);
 
+
+
             int diff = 40 / g_lsModules.Count;
             int value = 40;
 
@@ -217,6 +188,8 @@ namespace UTChecker
 
                 foreach (string sItem in g_lsModules)
                 {
+
+
                     // Determine the input/output file names.
                     sStartPath = g_sTDSPath + sItem;
                     sListFile = sStartPath + "_TDS.list";
@@ -225,10 +198,11 @@ namespace UTChecker
 
                     Logger.FileName = g_sErrorLogFile;
 
+                    List<string> a = ReadAllModuleNames(@"E:\Run\UTChecker\Summary.xlsx");
+                    int index = GetModuleId(sItem, a);
 
 
-
-                    Logger.Print($"{sItem} is processing now.");
+                    Logger.Print($"{sItem} is processing now. {index}");
 
                     // Remove old log file.
                     if (File.Exists(g_sErrorLogFile))
@@ -513,6 +487,41 @@ namespace UTChecker
 
             return 0;
         }
+
+
+
+
+        /// <summary>
+        /// Init all variables
+        /// </summary>
+        /// <returns></returns>
+        private bool InitializeVariable()
+        {
+            string sFuncName = "[Init]";
+
+            // init the list of modules
+            g_lsModules = new List<string>();
+
+            // get the handler for excel
+            g_excelApp = new Excel.Application
+            {
+                DisplayAlerts = false
+            };
+
+            // Initialize ...
+            g_lsTDSFiles = new List<string>();
+
+            // New the list for storing the data read.
+            g_tTestCaseTable.ltItems = new List<TestCaseItem>();
+
+            g_lsModuleInfo = new List<ModuleInfo>();
+            g_lsModuleInfo.Clear();
+
+            Logger.Print(sFuncName, "Done.");
+
+            return true;
+        }
+
 
 
 
