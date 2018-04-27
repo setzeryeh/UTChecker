@@ -12,6 +12,87 @@ namespace UTChecker
     public partial class TDS_Parser
     {
 
+        private List<string> ReadAllModuleNames(string a_sSummaryReportFile)
+        {
+            string sFuncName = "[ReadSummaryModuleTable]";
+
+            List<string> lsModuleNames = null;
+
+            Excel.Workbook excelBook = null;
+            Excel.Worksheet excelSheet;
+            Excel.Range excelRange;
+
+            // Check the readiness of the Excel app.
+            if (null == g_excelApp)
+            {
+                Logger.Print(sFuncName, "Cannot execute MS Excel.");
+
+                return null;
+            }
+
+
+            // Check the existence of the summary report.
+            if (!File.Exists(a_sSummaryReportFile))
+            {
+                Logger.Print(sFuncName, "Cannot find " + a_sSummaryReportFile);
+
+                return null;
+            }
+
+            try
+            {
+                // Open the specified EXCEL file.
+                excelBook = g_excelApp.Workbooks.Open(a_sSummaryReportFile, 0, true, 6, "", "", true,
+                    Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
+
+                // Get the used range of the 1st sheet.
+                excelSheet = (Excel.Worksheet)excelBook.Worksheets.get_Item(SummaryReport.SHEET_NAME);
+                excelRange = excelSheet.UsedRange;
+
+                lsModuleNames = new List<string>();
+
+                for (int i = SummaryReport.FIRST_ROW; i <= excelRange.Rows.Count; i++)
+                {
+                    // Read the module names (1st row is caption). 
+                    string sModuleName = ReadStringFromExcelCell(excelRange.Cells[i, SummaryReport.ColumnIndex.MODULE_NAME], "", false);
+                    if ("" == sModuleName)
+                    {
+                        Logger.Print(sFuncName, "Row " + i.ToString() + ": Module name is empty.");
+                    }
+
+
+                    lsModuleNames.Add(sModuleName);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                Logger.Print(sFuncName, ex.ToString());
+
+                return null;
+
+            }
+            finally
+            {
+                // Close the EXCEL table.
+                if (null != excelBook)
+                {
+                    excelBook.Close();
+                }
+            }
+
+            return lsModuleNames;
+        }
+
+
+
+
+
+
+
+
+
+
         public string PrepareSummaryReport(string output_path)
         {
             string dest = null;
@@ -22,7 +103,7 @@ namespace UTChecker
                 String fileName = Path.GetFileName(g_sSummaryReport);
 
                 // append the file name to output path
-                dest = output_path + SummaryReport.SUMMARY_REPORT_FILENAME;
+                dest = output_path + SummaryReport.FILE_NAME;
 
 
                 //Remove old output file.
@@ -80,14 +161,14 @@ namespace UTChecker
 
             if (null == a_sExcelFile)
             {
-                LogToFile(sFuncName, "summary report is null.");
+                Logger.Print(sFuncName, "summary report is null.");
                 return false;
             }
 
             // Check the readiness of the EXCEL app.
             if (null == g_excelApp)
             {
-                LogToFile(sFuncName, "EXCEL app is null.");
+                Logger.Print(sFuncName, "EXCEL app is null.");
                 return false;
             }
 
@@ -107,7 +188,7 @@ namespace UTChecker
                     excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
 
                     // name
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.NAME] = item.name;
+                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
                     excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
                     excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
@@ -157,7 +238,7 @@ namespace UTChecker
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, Path.GetFileName(a_sExcelFile) + ": " + ex.ToString());
+                Logger.Print(sFuncName, Path.GetFileName(a_sExcelFile) + ": " + ex.ToString());
                 return false;
             }
             finally

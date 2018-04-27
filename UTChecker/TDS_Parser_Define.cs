@@ -205,8 +205,7 @@ namespace UTChecker
 
         static string g_sErrorLogFile = "";
 
-        //static string g_sProcessLogFileName = "Process.log";
-        static string g_sProcessLog = "Process.log";
+
 
         static List<string> g_lsModules = null;
         static List<string> g_lsTDSFiles = null;

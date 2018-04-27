@@ -12,7 +12,7 @@ namespace UTChecker
 
         static class SummaryReport
         {
-            public const string SUMMARY_REPORT_FILENAME = "Method_TC_Lookup_Table_Summary.xlsx";
+            public const string FILE_NAME = "Method_TC_Lookup_Table_Summary.xlsx";
             public const string SHEET_NAME = "Summary";
 
             public const int COLUMN_COUNT = (int)ColumnIndex.ERROR_COUNT;
@@ -23,7 +23,7 @@ namespace UTChecker
             public enum ColumnIndex
             {
                 INDEX = 1,
-                NAME,
+                MODULE_NAME,
 
                 SOURCE_COUNT,
                 METHOD_COUNT,

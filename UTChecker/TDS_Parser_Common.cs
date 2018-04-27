@@ -74,7 +74,7 @@ namespace UTChecker
             }
             catch
             {
-                LogToFile(Constants.StringTokens.MSG_BULLET, "No \"" + sSheetName + "\" sheet can be found.");
+                Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + sSheetName + "\" sheet can be found.");
                 return false;
             }
 
@@ -105,7 +105,7 @@ namespace UTChecker
                 // e.g. "XXX .java" --> "XXX.java"
                 if (sSourceFileName.Contains(" "))
                 {
-                    LogToFile(Constants.StringTokens.MSG_BULLET, "File name \"" + sSourceFileName + "\" contains space(s). Stripped.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "File name \"" + sSourceFileName + "\" contains space(s). Stripped.");
                     sSourceFileName.Replace(" ", "");
                 }
 
@@ -123,7 +123,7 @@ namespace UTChecker
             }
             else
             {
-                LogToFile(Constants.StringTokens.MSG_BULLET, "No source file name can be found from the \"" + sSheetName + "\" sheet.");
+                Logger.Print(Constants.StringTokens.MSG_BULLET, "No source file name can be found from the \"" + sSheetName + "\" sheet.");
                 return false;
             }
 
@@ -181,24 +181,24 @@ namespace UTChecker
             // Check the input list.
             if (null == a_lsTDSFiles)
             {
-                LogToFile(sFuncName, "The input list is null.");
+                Logger.Print(sFuncName, "The input list is null.");
                 return false;
             }
             if (0 == a_lsTDSFiles.Count)
             {
-                LogToFile(sFuncName, "No TDS file is found.");
+                Logger.Print(sFuncName, "No TDS file is found.");
                 return false;
             }
             // Check the EXCEL app.
             if (null == g_excelApp)
             {
-                LogToFile(sFuncName, "EXCEL app is null.");
+                Logger.Print(sFuncName, "EXCEL app is null.");
                 return false;
             }
 
             try
             {
-                LogToFile(sFuncName, "Reading TDS files...");
+                Logger.Print(sFuncName, "Reading TDS files...");
 
                 // Initialize objects.
                 dErrorCount = 0;
@@ -209,12 +209,12 @@ namespace UTChecker
                 foreach (string sFile in a_lsTDSFiles)
                 {
                     sFileNameWithoutPath = "\"" + Path.GetFileName(sFile) + "\"";
-                    LogToFile("", "Reading " + sFileNameWithoutPath + "...");
+                    Logger.Print("", "Reading " + sFileNameWithoutPath + "...");
 
                     // Check the existence of the TDS file.
                     if (!File.Exists(sFile))
                     {
-                        LogToFile(Constants.StringTokens.MSG_BULLET, "Cannot find " + sFile);
+                        Logger.Print(Constants.StringTokens.MSG_BULLET, "Cannot find " + sFile);
                         dErrorCount++;
                         continue;
                     }
@@ -247,7 +247,7 @@ namespace UTChecker
                     }
                     catch (SystemException ex)
                     {
-                        LogToFile(sFuncName, sFile.Replace(g_sTDSPath, "...") + ": " + ex.ToString());
+                        Logger.Print(sFuncName, sFile.Replace(g_sTDSPath, "...") + ": " + ex.ToString());
                         dErrorCount++;
                     }
                     finally
@@ -259,13 +259,13 @@ namespace UTChecker
             }
             catch (SystemException ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 dErrorCount++;
             }
 
             // Show the # of proceeded files.
             if (dProceedFileCount != a_lsTDSFiles.Count)
-                LogToFile(sFuncName, dProceedFileCount.ToString() + " of " + a_lsTDSFiles.Count + " TDS files proceed.");
+                Logger.Print(sFuncName, dProceedFileCount.ToString() + " of " + a_lsTDSFiles.Count + " TDS files proceed.");
 
             return true;
         }

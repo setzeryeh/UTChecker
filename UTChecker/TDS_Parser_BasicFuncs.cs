@@ -13,27 +13,6 @@ namespace UTChecker
     public partial class TDS_Parser
     {
 
-
-        /// <summary>
-        /// Init the process log
-        /// </summary>
-        /// <returns></returns>
-        public bool InitializeProcessLog()
-        {
-            // create process.log and remove old
-            //g_sProcessLog = g_sOutputPath + g_sProcessLogFileName;
-
-            if (File.Exists(g_sProcessLog))
-            {
-                File.Delete(g_sProcessLog);
-            }
-
-            return true;
-        }
-
-
-
-
         /// <summary>
         /// 
         /// </summary>
@@ -83,115 +62,8 @@ namespace UTChecker
 
 
 
-        //
-        // Log message to file without showing to Console
-        //
-        private void LogToFile(string a_sFuncName, string a_sMessage)
-        {
-            string sMsg = a_sFuncName + " " + a_sMessage;
-
-            try
-            {
-
-                // Log the message to file.
-                using (StreamWriter sw = File.AppendText(g_sErrorLogFile))
-                {
-                    sw.WriteLine(sMsg);
-                }
-
-            }
-            catch (Exception ex)
-            {
-                sMsg = $"{sMsg} : Exception: {ex.Message}";
-
-            }
-            finally
-            {
-                // Log the message to process log
-                using (StreamWriter sw = File.AppendText(g_sProcessLog))
-                {
-                    sw.WriteLine(sMsg);
-                    //this.LogToWindow(sMsg);
-                }
-            }
-
-        }
-
-
-        //
-        // Log message to file without showing to Console
-        //
-        private void LogToFileAndWin(string a_sFuncName, string a_sMessage)
-        {
-            string sMsg = a_sFuncName + " " + a_sMessage;
-
-            LogToFile(a_sFuncName, a_sMessage);
-
-            this.LogToWindow(sMsg);
-
-        }
-
-
         public event EventHandler UpdatePathEvent;
-        public event LoggerForm.ReportMessageEventHandler ReportMessageEvent;
-        public event LoggerForm.ReportMessageEventHandler ClearMessageEvent;
 
-        public event LoggerForm.ReportProgressEventHandler ReportProgressEvent;
-        public event LoggerForm.ReportProgressEventHandler ClearProgressEvent;
-
-
-
-
-        /// <summary>
-        /// This method trigger a event to report the message
-        /// </summary>
-        /// <param name="msg"></param>
-        private void LogToWindow(string msg)
-        {
-            if (ReportMessageEvent != null)
-            {
-                LoggerForm.ReportMessageEventArgs e = new LoggerForm.ReportMessageEventArgs();
-                e.message = msg;
-                ReportMessageEvent(this, e);
-            }
-
-        }
-
-
-        /// <summary>
-        /// This method triggers a event to report the progress
-        /// </summary>
-        private void ReportProgress(int progress)
-        {
-            if (ReportProgressEvent != null)
-            {
-                LoggerForm.ReportProgressEventArgs e = new LoggerForm.ReportProgressEventArgs();
-                e.progress = progress;
-                ReportProgressEvent(this, e);
-            }
-        }
-
-        /// <summary>
-        /// An event for clear message
-        /// </summary>
-        private void ClearMessage()
-        {
-            if (ClearMessageEvent != null)
-            {
-                ClearMessageEvent(this, new LoggerForm.ReportMessageEventArgs());
-            }
-        }
-
-        /// <summary>
-        /// An event for clear progress
-        /// </summary>
-        private void ClearProgress()
-        {
-            if (ClearProgressEvent != null)
-            {
-                ClearProgressEvent(this, new LoggerForm.ReportProgressEventArgs());
-            }
-        }
 
 
         /// <summary>
@@ -214,7 +86,7 @@ namespace UTChecker
             }
             catch (SystemException e)
             {
-                LogToFile(sFuncName, "Cannot release Excel app. Please kill the app manually: " + e.ToString());
+                Logger.Print(sFuncName, "Cannot release Excel app. Please kill the app manually: " + e.ToString());
             }
         }
 
@@ -233,7 +105,7 @@ namespace UTChecker
 
             if (null == a_excelApp)
             {
-                LogToFile(sFuncName, "Null EXCEL app is given.");
+                Logger.Print(sFuncName, "Null EXCEL app is given.");
                 return null;
             }
 
@@ -245,7 +117,7 @@ namespace UTChecker
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, "Open EXCEL file failed: " + a_sExcelFile + " (" + ex.ToString() + ")");
+                Logger.Print(sFuncName, "Open EXCEL file failed: " + a_sExcelFile + " (" + ex.ToString() + ")");
                 return null;
             }
         }
@@ -264,7 +136,7 @@ namespace UTChecker
 
             if (null == a_excelBook)
             {
-                LogToFile(sFuncName, "Null EXCEL workbook is given.");
+                Logger.Print(sFuncName, "Null EXCEL workbook is given.");
                 return null;
             }
 
@@ -275,7 +147,7 @@ namespace UTChecker
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, "Cannot find EXCEL sheet: " + a_sSheetName + " (" + ex.ToString() + ")");
+                Logger.Print(sFuncName, "Cannot find EXCEL sheet: " + a_sSheetName + " (" + ex.ToString() + ")");
                 return null;
             }
         }

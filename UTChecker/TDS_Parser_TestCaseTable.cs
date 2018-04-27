@@ -47,7 +47,7 @@ namespace UTChecker
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 return false;
             }
 
@@ -66,7 +66,7 @@ namespace UTChecker
             string sHeader;
             bool bOK;
 
-            LogToFile("\n" + sFuncName, "Checking & highlighting incorrect cells in the output report...");
+            Logger.Print("\n" + sFuncName, "Checking & highlighting incorrect cells in the output report...");
 
             // Highlight incorrect cells.
             for (i = 0, dRow = TestCaseTableConstants.FIRST_ROW; i < g_tTestCaseTable.ltItems.Count; i++, dRow++)
@@ -78,7 +78,7 @@ namespace UTChecker
                 // Check source file name.
                 if (tTestCase.sSourceFileName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                 {
-                    LogToFile(sHeader, ErrorMessage.INVLAID_SOURCE_FILE_NAME + ": \"" + tTestCase.sSourceFileName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.INVLAID_SOURCE_FILE_NAME + ": \"" + tTestCase.sSourceFileName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SOURCE_FILE].Interior.Color = Constants.Color.RED;
                     bOK = false;
                     dErrorCount++;
@@ -87,7 +87,7 @@ namespace UTChecker
                 // Check method name.
                 if (tTestCase.sMethodName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                 {
-                    LogToFile(sHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + tTestCase.sMethodName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + tTestCase.sMethodName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.METHOD_NAME].Interior.Color = Constants.Color.RED;
                     bOK = false;
                     dErrorCount++;
@@ -96,14 +96,14 @@ namespace UTChecker
                 // Check test case label name.
                 if (tTestCase.sTCLabelName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                 {
-                    LogToFile(sHeader, ErrorMessage.INVLAID_TC_LABEL + ": \"" + tTestCase.sTCLabelName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.INVLAID_TC_LABEL + ": \"" + tTestCase.sTCLabelName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL].Interior.Color = Constants.Color.RED;
                     bOK = false;
                     dErrorCount++;
                 }
                 else if (tTestCase.bIsRepeated) // test case label is same as others
                 {
-                    LogToFile(sHeader, ErrorMessage.DUPLICATE_TC_LABEL_FOUND + ": \"" + tTestCase.sTCLabelName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.DUPLICATE_TC_LABEL_FOUND + ": \"" + tTestCase.sTCLabelName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL].Interior.Color = Constants.Color.RED;
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE].Interior.Color = Constants.Color.RED;
                     bOK = false;
@@ -113,7 +113,7 @@ namespace UTChecker
                 // Check test case function name.
                 if (tTestCase.sTCFuncName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                 {
-                    LogToFile(sHeader, ErrorMessage.INVLAID_TC_FUNC_NAME + ": \"" + tTestCase.sTCFuncName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.INVLAID_TC_FUNC_NAME + ": \"" + tTestCase.sTCFuncName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_NAME].Interior.Color = Constants.Color.RED;
                     bOK = false;
                     dErrorCount++;
@@ -122,7 +122,7 @@ namespace UTChecker
                 // Check test means.
                 if (TestMeans.UNKNOWN == tTestCase.eTestMeans)
                 {
-                    LogToFile(sHeader, ErrorMessage.TC_TEST_MEANS_SHALL_NOT_BE_UNKNOWN + ": \"" + tTestCase.sTCLabelName + "\"");
+                    Logger.Print(sHeader, ErrorMessage.TC_TEST_MEANS_SHALL_NOT_BE_UNKNOWN + ": \"" + tTestCase.sTCLabelName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE].Interior.Color = Constants.Color.RED;
                     bOK = false;
                     dErrorCount++;
@@ -190,14 +190,14 @@ namespace UTChecker
                     }
                     catch (SystemException e)
                     {
-                        LogToFile("", e.ToString());
+                        Logger.Print("", e.ToString());
                     }
                 }
                 g_tTestCaseTable.dNGEntryCount = dNGCount;
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 return false;
             }
 
@@ -213,23 +213,23 @@ namespace UTChecker
             // Check the input parameters.
             if (!File.Exists(g_sTemplateFile))
             {
-                LogToFile(sFuncName, ErrorMessage.CANNOT_FIND_TEMPLATE + ": \"" + g_sTemplateFile + "\"");
+                Logger.Print(sFuncName, ErrorMessage.CANNOT_FIND_TEMPLATE + ": \"" + g_sTemplateFile + "\"");
                 return false;
             }
             if ("" == a_sOutFile)
             {
-                LogToFile(sFuncName, ErrorMessage.OUTPUT_FILE_IS_NULL);
+                Logger.Print(sFuncName, ErrorMessage.OUTPUT_FILE_IS_NULL);
                 return false;
             }
             if (0 >= g_tTestCaseTable.ltItems.Count)
             {
-                LogToFile(sFuncName, ErrorMessage.NO_ENTRY_TO_BE_SAVED);
+                Logger.Print(sFuncName, ErrorMessage.NO_ENTRY_TO_BE_SAVED);
                 return false;
             }
 
             if (null == g_excelApp)
             {
-                LogToFile(sFuncName, ErrorMessage.EXCEL_APP_IS_NULL);
+                Logger.Print(sFuncName, ErrorMessage.EXCEL_APP_IS_NULL);
                 return false;
             }
 
@@ -253,7 +253,7 @@ namespace UTChecker
             }
             catch (System.Exception ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 return false;
             }
             finally

@@ -40,7 +40,7 @@ namespace UTChecker
                 }
                 catch
                 {
-                    LogToFile(Constants.StringTokens.MSG_BULLET, "No \"TestCase\" sheet can be found.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"TestCase\" sheet can be found.");
                     return ++dErrorCount;
                 }
 
@@ -78,26 +78,26 @@ namespace UTChecker
                 // Check the extracted name.
                 if (sMethodName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                 {
-                    LogToFile(sMsgHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + sMethodName + "\"");
+                    Logger.Print(sMsgHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + sMethodName + "\"");
                     return ++dErrorCount;
                 }
                 else if (sMethodName.StartsWith(Constants.StringTokens.NA))
                 {
                     sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA;
-                    LogToFile(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA);
+                    Logger.Print(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA);
                     return ++dErrorCount;
                 }
                 else if ("" == sMethodName)
                 {
                     sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY;
-                    LogToFile(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY);
+                    Logger.Print(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY);
                     return ++dErrorCount;
                 }
                 else if (sMethodName.Contains(" "))
                 {
                     sMsg = ErrorMessage.METHOD_NAME_SHALL_NOT_CONTAIN_SPACE + ": \"" + sMethodName + "\"";
                     sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                    LogToFile(sMsgHeader, sMsg);
+                    Logger.Print(sMsgHeader, sMsg);
                     return ++dErrorCount;
                 }
                 // Arrange the name, if needs.
@@ -107,7 +107,7 @@ namespace UTChecker
                 // Check the consistence of method names.
                 if (!a_sMethodName.Contains(sMethodName))
                 {
-                    LogToFile(sMsgHeader, "method name \"" + sMethodName + "\" is not consisted with the name \"" + a_sMethodName + "\" in the cover sheet.");
+                    Logger.Print(sMsgHeader, "method name \"" + sMethodName + "\" is not consisted with the name \"" + a_sMethodName + "\" in the cover sheet.");
                     return ++dErrorCount;
                 }
 
@@ -133,26 +133,26 @@ namespace UTChecker
                     // Check the extracted name.
                     if (sTCLabelName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
-                        LogToFile(sMsgHeader, "Invlaid TC label read: \"" + sTCLabelName + "\"");
+                        Logger.Print(sMsgHeader, "Invlaid TC label read: \"" + sTCLabelName + "\"");
                         dErrorCount++;
                     }
                     else if (sTCLabelName.StartsWith(Constants.StringTokens.NA))
                     {
                         sTCLabelName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA;
-                        LogToFile(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA);
+                        Logger.Print(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA);
                         dErrorCount++;
                     }
                     else if (sTCLabelName.Contains(" "))
                     {
                         sMsg = ErrorMessage.TC_LABEL_SHALL_NOT_CONTAIN_SPACE + ": \"" + sTCLabelName + "\"";
                         sTCLabelName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                        LogToFile(sMsgHeader, sMsg);
+                        Logger.Print(sMsgHeader, sMsg);
                         dErrorCount++;
                     }
                     // Skip this item if TC label is same as the previous one.
                     else if (sPrevLabel == sTCLabelName)
                     {
-                        LogToFile(sMsgHeader, ErrorMessage.DUPLICATE_TC_LABEL_FOUND + ": \"" + sTCLabelName + "\"");
+                        Logger.Print(sMsgHeader, ErrorMessage.DUPLICATE_TC_LABEL_FOUND + ": \"" + sTCLabelName + "\"");
                         dErrorCount++;
                         continue;
                     }
@@ -175,7 +175,7 @@ namespace UTChecker
             }
             catch (SystemException ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 dErrorCount++;
             }
 

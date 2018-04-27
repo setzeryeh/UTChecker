@@ -32,9 +32,10 @@ namespace UTChecker
 
             gTDSParser = new TDS_Parser(this, gLoggerForm);
             gTDSParser.UpdatePathEvent += new EventHandler(this.UpdatePath);
+            
 
             // init a form for Logger/Progress
-            gLoggerForm = new LoggerForm(ref gTDSParser);
+            gLoggerForm = new LoggerForm();
 
         }
 
@@ -58,7 +59,7 @@ namespace UTChecker
             {
                 if (gLoggerForm.IsDisposed)
                 {
-                    gLoggerForm = new LoggerForm(ref gTDSParser);
+                    gLoggerForm = new LoggerForm();
                 }
 
 
@@ -119,7 +120,7 @@ namespace UTChecker
         {
             if (gLoggerForm.IsDisposed)
             {
-                gLoggerForm = new LoggerForm(ref gTDSParser);
+                gLoggerForm = new LoggerForm();
             }
 
             gLoggerForm.Show();

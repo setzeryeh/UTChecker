@@ -79,14 +79,14 @@ namespace UTChecker
                 }
                 catch
                 {
-                    LogToFile(Constants.StringTokens.MSG_BULLET, "No \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet can be found.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet can be found.");
                     return ++dErrorCount;
                 }
 
                 // Check the column count.
                 if (4 > excelRange.Columns.Count)
                 {
-                    LogToFile(Constants.StringTokens.MSG_BULLET, "Invalid \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "Invalid \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
                     return ++dErrorCount;
                 }
 
@@ -101,7 +101,7 @@ namespace UTChecker
                     {
                         if (i == dFirstRow)
                         {
-                            LogToFile(Constants.StringTokens.MSG_BULLET, "No data contained in \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
+                            Logger.Print(Constants.StringTokens.MSG_BULLET, "No data contained in \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
                             dErrorCount++;
                         }
                         break;
@@ -126,19 +126,19 @@ namespace UTChecker
                     if (sMethodName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sMethodName = sMethodName0;
-                        LogToFile(sMsgHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + sMethodName0 + "\"");
+                        Logger.Print(sMsgHeader, ErrorMessage.INVLAID_METHOD_NAME + ": \"" + sMethodName0 + "\"");
                         dErrorCount++;
                     }
                     else if (sMethodName0.StartsWith(Constants.StringTokens.NA))
                     {
                         sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA;
-                        LogToFile(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA);
+                        Logger.Print(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_NA);
                         dErrorCount++;
                     }
                     else if ("" == sMethodName0)
                     {
                         sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY;
-                        LogToFile(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY);
+                        Logger.Print(sMsgHeader, ErrorMessage.METHOD_NAME_SHALL_NOT_BE_EMPTY);
                         dErrorCount++;
                     }
                     else
@@ -151,7 +151,7 @@ namespace UTChecker
                         {
                             sMsg = ErrorMessage.METHOD_NAME_SHALL_NOT_CONTAIN_SPACE + ": \"" + sMethodName0 + "\"";
                             sMethodName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                            LogToFile(sMsgHeader, sMsg);
+                            Logger.Print(sMsgHeader, sMsg);
                             dErrorCount++;
                         }
                         else // Form the unique method name: Filename + method name.
@@ -162,26 +162,26 @@ namespace UTChecker
                     if (sTCLabelName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sTCLabelName = sTCLabelName0;
-                        LogToFile(sMsgHeader, ErrorMessage.INVLAID_TC_LABEL + ": \"" + sTCLabelName0 + "\"");
+                        Logger.Print(sMsgHeader, ErrorMessage.INVLAID_TC_LABEL + ": \"" + sTCLabelName0 + "\"");
                         dErrorCount++;
                     }
                     else if (sTCLabelName0.StartsWith(Constants.StringTokens.NA))
                     {
                         sTCLabelName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA;
-                        LogToFile(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA);
+                        Logger.Print(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_NA);
                         dErrorCount++;
                     }
                     else if ("" == sTCLabelName0)
                     {
                         sTCLabelName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.TC_LABEL_SHALL_NOT_BE_EMPTY;
-                        LogToFile(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_EMPTY);
+                        Logger.Print(sMsgHeader, ErrorMessage.TC_LABEL_SHALL_NOT_BE_EMPTY);
                         dErrorCount++;
                     }
                     else if (sTCLabelName0.Contains(" "))
                     {
                         sMsg = ErrorMessage.TC_LABEL_SHALL_NOT_CONTAIN_SPACE + ": \"" + sTCLabelName0 + "\"";
                         sTCLabelName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                        LogToFile(sMsgHeader, sMsg);
+                        Logger.Print(sMsgHeader, sMsg);
                         dErrorCount++;
                     }
                     else // Form the unique method name: Filename + TC label name.
@@ -192,7 +192,7 @@ namespace UTChecker
                     if (sTCFuncName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sTCFuncName = sTCFuncName0;
-                        LogToFile(sMsgHeader, ErrorMessage.INVLAID_TC_FUNC_NAME + ": \"" + sTCFuncName0 + "\"");
+                        Logger.Print(sMsgHeader, ErrorMessage.INVLAID_TC_FUNC_NAME + ": \"" + sTCFuncName0 + "\"");
                         dErrorCount++;
                     }
                     else if ("" == sTCFuncName0)
@@ -202,7 +202,7 @@ namespace UTChecker
                             sTCNote.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                         {
                             sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.NO_TC_FUNC_NAME_CAN_BE_READ;
-                            LogToFile(sMsgHeader, ErrorMessage.NO_TC_FUNC_NAME_CAN_BE_READ);
+                            Logger.Print(sMsgHeader, ErrorMessage.NO_TC_FUNC_NAME_CAN_BE_READ);
                             dErrorCount++;
                         }
                         else
@@ -215,7 +215,7 @@ namespace UTChecker
                             sTCNote.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                         {
                             sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + ErrorMessage.REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC;
-                            LogToFile(sMsgHeader, ErrorMessage.REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC);
+                            Logger.Print(sMsgHeader, ErrorMessage.REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC);
                             dErrorCount++;
                         }
                         else
@@ -229,7 +229,7 @@ namespace UTChecker
                     {
                         sMsg = ErrorMessage.TC_FUNC_NAME_SHALL_NOT_CONTAIN_SPACE + ": \"" + sTCFuncName0 + "\"";
                         sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                        LogToFile(sMsgHeader, sMsg);
+                        Logger.Print(sMsgHeader, sMsg);
                         dErrorCount++;
                     }
                     else // Form the unique method name: Filename + method name.
@@ -256,7 +256,7 @@ namespace UTChecker
             }
             catch (SystemException ex)
             {
-                LogToFile(sFuncName, ex.ToString());
+                Logger.Print(sFuncName, ex.ToString());
                 dErrorCount++;
             }
 

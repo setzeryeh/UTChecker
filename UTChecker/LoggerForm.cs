@@ -12,27 +12,36 @@ namespace UTChecker
 {
     public partial class LoggerForm : Form
     {
-        private TDS_Parser gTDSParser = null;
 
+        /// <summary>
+        /// 
+        /// </summary>
         private BackgroundWorker g_bwLogger;
+
+        /// <summary>
+        /// 
+        /// </summary>
         private BackgroundWorker g_bwProgress;
 
 
-        public LoggerForm(ref TDS_Parser tdsParser)
+        /// <summary>
+        /// 
+        /// </summary>
+        public LoggerForm()
         {
             InitializeComponent();
 
-            gTDSParser = tdsParser;
-
 
             InitializeBackgroundWorkerForLogger();
-            tdsParser.ReportMessageEvent += new ReportMessageEventHandler(this.ReportMessage);
-            tdsParser.ClearMessageEvent += new ReportMessageEventHandler(this.ClearMessage);
+
+            Logger.ReportMessageEvent += new ReportMessageEventHandler(this.ReportMessage);
+            Logger.ClearMessageEvent += new ReportMessageEventHandler(this.ClearMessage);
 
 
             InitializeBackgroundWorkerForProgress();
-            tdsParser.ReportProgressEvent += new ReportProgressEventHandler(this.ReportProgress);
-            tdsParser.ClearProgressEvent += new ReportProgressEventHandler(this.ClearProgress);
+
+            Logger.ReportProgressEvent += new ReportProgressEventHandler(this.ReportProgress);
+            Logger.ClearProgressEvent += new ReportProgressEventHandler(this.ClearProgress);
         }
 
 
@@ -54,7 +63,11 @@ namespace UTChecker
             g_bwLogger.RunWorkerAsync();
         }
 
-        // event for DoWork
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwLogger_DoWork(object sender, DoWorkEventArgs e)
         {
             while (true)
@@ -67,7 +80,11 @@ namespace UTChecker
             }
         }
 
-        // event for ProgressChanged
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwLogger_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
 
@@ -86,7 +103,11 @@ namespace UTChecker
 
         }
 
-        // event for 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwLogger_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
 
@@ -101,19 +122,33 @@ namespace UTChecker
             public string message { get; set; }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="eventArgs"></param>
         public delegate void ReportMessageEventHandler(object sender, ReportMessageEventArgs eventArgs);
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void ReportMessage(object sender, ReportMessageEventArgs e)
         {
             g_bwLogger.ReportProgress(1, e.message);
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void ClearMessage(object sender, ReportMessageEventArgs e)
         {
             g_bwLogger.ReportProgress(0, "ClearMessage");
         }
-
-
-
 
 
 
@@ -134,7 +169,12 @@ namespace UTChecker
             g_bwProgress.RunWorkerAsync();
         }
 
-        // event for DoWork
+        
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwProgress_DoWork(object sender, DoWorkEventArgs e)
         {
             while (true)
@@ -148,7 +188,12 @@ namespace UTChecker
             
         }
 
-        // event for ProgressChanged
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwProgress_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             if (e.ProgressPercentage == 0 && ((string)e.UserState).Equals("ClearMessage"))
@@ -162,7 +207,12 @@ namespace UTChecker
 
         }
 
-        // event for 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void bwProgress_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
 
@@ -177,6 +227,12 @@ namespace UTChecker
             public int progress { get; set; }
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="eventArgs"></param>
         public delegate void ReportProgressEventHandler(object sender, ReportProgressEventArgs eventArgs);
         public void ReportProgress(object sender, ReportProgressEventArgs e)
         {
@@ -185,12 +241,24 @@ namespace UTChecker
 
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         public void ClearProgress(object sender, ReportProgressEventArgs e)
         {
             g_bwProgress.ReportProgress(0, "ClearProgress");
 
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void LoggerForm_FormClosing(object sender, FormClosingEventArgs e)
         {
 
@@ -202,13 +270,18 @@ namespace UTChecker
 
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void LoggerForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            gTDSParser.ReportMessageEvent -= new ReportMessageEventHandler(this.ReportMessage);
-            gTDSParser.ClearMessageEvent -= new ReportMessageEventHandler(this.ClearMessage);
+            Logger.ReportMessageEvent -= new ReportMessageEventHandler(this.ReportMessage);
+            Logger.ClearMessageEvent -= new ReportMessageEventHandler(this.ClearMessage);
 
-            gTDSParser.ReportProgressEvent -= new ReportProgressEventHandler(this.ReportProgress);
-            gTDSParser.ClearProgressEvent -= new ReportProgressEventHandler(this.ClearProgress);
+            Logger.ReportProgressEvent -= new ReportProgressEventHandler(this.ReportProgress);
+            Logger.ClearProgressEvent -= new ReportProgressEventHandler(this.ClearProgress);
 
 
         }

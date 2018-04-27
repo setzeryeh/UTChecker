@@ -66,6 +66,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Logger.cs" />
     <Compile Include="TDS_Parser_BasicFuncs.cs" />
     <Compile Include="TDS_Parser_Common.cs" />
     <Compile Include="TDS_Parser_Define.cs" />
