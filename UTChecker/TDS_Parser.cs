@@ -72,7 +72,7 @@ namespace UTChecker
         // event for 
         private void bwTDSParse_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (this.RunThisBy == RunBy.CommandLine)
+            if (this.RunUTCheckerBy == RunBy.CommandLine)
             {
                 Environment.ExitCode = 0;
                 Environment.Exit(Environment.ExitCode);
@@ -201,7 +201,10 @@ namespace UTChecker
             // prepare summary report
             string sSummaryReport = PrepareSummaryReport(g_sOutputPath);
 
-            int count = 0;
+            int diff = 40 / g_lsModules.Count;
+            int value = 40;
+
+            LogToWindow($"Total {g_lsModules.Count} modules would be checked.");
 
             try
             {
@@ -216,7 +219,6 @@ namespace UTChecker
 
 
                     LogToWindow($"{sItem} is processing now.");
-
 
                     // Remove old log file.
                     if (File.Exists(g_sErrorLogFile))
@@ -422,8 +424,13 @@ namespace UTChecker
                     }
 
 
-                    count++;
-                    ReportProgress(40 + count);
+                    if (value < 80)
+                    {
+                        value = value + diff;
+                        ReportProgress(value);
+                    }
+
+                    
 
 
                 } // End of foreach
@@ -529,7 +536,7 @@ namespace UTChecker
                 UpdatePathEvent(this, null);
 
 
-                this.RunThisBy = RunBy.CommandLine;
+                this.RunUTCheckerBy = RunBy.CommandLine;
 
                 LogToFile(sFuncName, "Update the path setting from Command Line.");
 
@@ -603,7 +610,7 @@ namespace UTChecker
                     bDone = true;
                 }
 
-                this.RunThisBy = RunBy.User;
+                this.RunUTCheckerBy = RunBy.User;
             }
 
 
@@ -632,6 +639,7 @@ namespace UTChecker
             g_sOutputPath = fp.outputPath;              // output path
             g_sTemplateFile = fp.reportTemplate; ; ;    // template file
             g_sSummaryReport = fp.summaryTemplate;      // summary templat
+
 
             // Ensure each path is ended with a '\\'.
             if (!g_sTDSPath.EndsWith("\\"))
@@ -808,6 +816,13 @@ namespace UTChecker
             return true;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sStartPath"></param>
+        /// <param name="a_lsOutList"></param>
+        /// <param name="a_sOutFile"></param>
+        /// <returns></returns>
         private bool SearchTDSFiles(string a_sStartPath, ref List<string> a_lsOutList, string a_sOutFile)
         {
             string sFuncName = "[SearchTDSFiles]";
@@ -834,7 +849,9 @@ namespace UTChecker
 
             // Save the list of found files to the specifed file.
             if ("" != a_sOutFile)
+            {
                 WriteStringListToTextFile(ref a_lsOutList, a_sOutFile);
+            }
 
             LogToFile(sFuncName, a_lsOutList.Count.ToString() + " TDS file(s) collected.");
 
@@ -842,7 +859,14 @@ namespace UTChecker
         }
 
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sDir"></param>
+        /// <param name="a_sFileExt"></param>
+        /// <param name="a_sToken"></param>
+        /// <param name="a_lsCollection"></param>
+        /// <returns></returns>
         private List<string> CollectFiles(string a_sDir, string a_sFileExt, string a_sToken, ref List<string> a_lsCollection)
         {
             string sFuncName = "[CollectFiles]";
@@ -886,7 +910,12 @@ namespace UTChecker
         }
 
 
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_lsInList"></param>
+        /// <param name="a_sOutFile"></param>
+        /// <returns></returns>
         private bool WriteStringListToTextFile(ref List<string> a_lsInList, string a_sOutFile)
         {
             string sFuncName = "[WriteStringListToTextFile]";
@@ -931,75 +960,68 @@ namespace UTChecker
         }
 
 
-
+        /// <summary>
+        /// Determine the type/mean for test case.
+        /// </summary>
+        /// <param name="a_sInfo"></param>
+        /// <returns></returns>
         private TestMeans DetermineTestMeans(string a_sInfo)
         {
-            MethodType eMethodType = MethodType.UNKNOWN;
             TestMeans eTestMeans = TestMeans.UNKNOWN;
 
             if (a_sInfo.Equals("N/A"))
             {
-                eMethodType = MethodType.NORMAL;
                 eTestMeans = TestMeans.TEST_SCRIPT;
                 gn_ByMockito++;
             }
-            else if (a_sInfo.Equals("By PowerMockito"))
+            else if (a_sInfo.Equals(TestType.ByPowerMocktio))
             {
-                eMethodType = MethodType.NORMAL;
                 eTestMeans = TestMeans.TEST_SCRIPT;
                 gn_ByPowerMockito++;
             }
-            else if (a_sInfo.Equals("By code analysis"))
+            else if (a_sInfo.Equals(TestType.ByCodeAnalysis))
             {
-                eMethodType = MethodType.BY_CODE_ANALYSIS;
                 eTestMeans = TestMeans.CODE_ANALYSIS;
                 gn_Bycodeanalysis++;
             }
-            else if (a_sInfo.Equals("Getter/Setter"))
+            else if (a_sInfo.Equals(TestType.GetterSetter))
             {
-                eMethodType = MethodType.GETTER_SETTER;
                 eTestMeans = TestMeans.NA;
                 gn_GetterSetter++;
             }
-            else if (a_sInfo.Equals("Empty method"))
+            else if (a_sInfo.Equals(TestType.Empty))
             {
-                eMethodType = MethodType.EMPTY;
                 eTestMeans = TestMeans.NA;
                 gn_Emptymethod++;
             }
-            else if (a_sInfo.Equals("Abstract method"))
+            else if (a_sInfo.Equals(TestType.Abstract))
             {
-                eMethodType = MethodType.ABSTRACE;
                 eTestMeans = TestMeans.NA;
                 gn_Abstractmethod++;
             }
-            else if (a_sInfo.Equals("Interface method"))
+            else if (a_sInfo.Equals(TestType.Interface))
             {
-                eMethodType = MethodType.INTERFACE;
                 eTestMeans = TestMeans.NA;
                 gn_Interfacemethod++;
             }
-            else if (a_sInfo.Equals("Native method"))
+            else if (a_sInfo.Equals(TestType.Native))
             {
-                eMethodType = MethodType.NATIVE;
                 eTestMeans = TestMeans.NA;
                 gn_Nativemethod++;
             }
-            else if (a_sInfo.Equals("Pure function calls"))
+            else if (a_sInfo.Equals(TestType.PureFunctionCalls))
             {
-                eMethodType = MethodType.PURE_CALL;
+                //eMethodType = MethodType.PURE_CALL;
                 eTestMeans = TestMeans.CODE_ANALYSIS;
                 gn_Purefunctioncalls++;
             }
-            else if (a_sInfo.Equals("Pure UI function calls"))
+            else if (a_sInfo.Equals(TestType.PureUIFunctionCalss))
             {
-                eMethodType = MethodType.PURE_UI_CALL;
                 eTestMeans = TestMeans.CODE_ANALYSIS;
                 gn_PureUIfunctioncalls++;
             }
             else
             {
-                eMethodType = MethodType.UNKNOWN;
                 eTestMeans = TestMeans.UNKNOWN;
                 gn_Unknow++;
 

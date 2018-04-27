@@ -54,7 +54,7 @@ namespace UTChecker
                 Environment.Exit(Environment.ExitCode);
             }
 
-            if (gTDSParser.RunThisBy == TDS_Parser.RunBy.CommandLine)
+            if (gTDSParser.RunUTCheckerBy == TDS_Parser.RunBy.CommandLine)
             {
                 if (gLoggerForm.IsDisposed)
                 {

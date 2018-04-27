@@ -40,8 +40,12 @@ namespace UTChecker
 
         }
 
+        /// <summary>
+        /// Definitions for UTChecker.setting
+        /// </summary>
         public static class UTCheckerSetting
         {
+            
             public const string FileName = "UTChecker.setting";
 
             public const string Prefix = "@SET";
@@ -56,21 +60,22 @@ namespace UTChecker
         }
 
 
-        public enum MethodType
+        /// <summary>
+        /// The definition of Note in TDS
+        /// </summary>
+        public static class TestType
         {
-            UNKNOWN = 0,
-            NORMAL,
-            BY_POWERMOCKIT,
-            BY_CODE_ANALYSIS,
-            GETTER_SETTER,
-            EMPTY,
-            INTERFACE,
-            ABSTRACE,
-            NATIVE,
-            PURE_CALL,
-            PURE_UI_CALL,
+            public const string ByPowerMocktio = "By PowerMockito";
+            public const string ByMockito = "N/A";
+            public const string GetterSetter = "Getter/Setter";
+            public const string Empty = "Empty method";
+            public const string Abstract = "Abstract method";
+            public const string Interface = "Interface method";
+            public const string Native = "Native method";
+            public const string PureFunctionCalls = "Pure function calls";
+            public const string PureUIFunctionCalss = "Pure UI function calls";
+            public const string ByCodeAnalysis = "By code analysis";
         }
-
 
 
         public enum TestMeans
@@ -182,7 +187,7 @@ namespace UTChecker
 
 
 
-        public RunBy RunThisBy { get; private set; }
+        public RunBy RunUTCheckerBy { get; private set; }
 
 
         private BackgroundWorker g_bwTDSParse;
@@ -200,7 +205,7 @@ namespace UTChecker
 
         static string g_sErrorLogFile = "";
 
-        static string g_sProcessLogFileName = "Process.log";
+        //static string g_sProcessLogFileName = "Process.log";
         static string g_sProcessLog = "Process.log";
 
         static List<string> g_lsModules = null;

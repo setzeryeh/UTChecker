@@ -14,8 +14,6 @@ namespace UTChecker
     {
 
 
-
-
         /// <summary>
         /// Init the process log
         /// </summary>

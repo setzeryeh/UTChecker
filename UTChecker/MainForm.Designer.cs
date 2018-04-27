@@ -38,19 +38,19 @@
             this.textBoxReportTemplate = new System.Windows.Forms.TextBox();
             this.textBoxSummaryTemplate = new System.Windows.Forms.TextBox();
             this.textBoxOutputPath = new System.Windows.Forms.TextBox();
-            this.groupBoxPath = new System.Windows.Forms.GroupBox();
+            this.groupBoxEnvironment = new System.Windows.Forms.GroupBox();
+            this.buttonSelectTestLogsPath = new System.Windows.Forms.Button();
+            this.buttonSelectSummaryTemplate = new System.Windows.Forms.Button();
+            this.buttonSelectReportTempate = new System.Windows.Forms.Button();
+            this.buttonSelectListFile = new System.Windows.Forms.Button();
+            this.buttonSelectTDSPath = new System.Windows.Forms.Button();
+            this.buttonSelectOutputPath = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
             this.textBoxTestLogs = new System.Windows.Forms.TextBox();
             this.buttonRun = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
-            this.buttonSelectOutputPath = new System.Windows.Forms.Button();
-            this.buttonSelectTDSPath = new System.Windows.Forms.Button();
-            this.buttonSelectSummaryTemplate = new System.Windows.Forms.Button();
-            this.buttonSelectReportTempate = new System.Windows.Forms.Button();
-            this.buttonSelectTestLogsPath = new System.Windows.Forms.Button();
-            this.buttonSelectListFile = new System.Windows.Forms.Button();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
-            this.groupBoxPath.SuspendLayout();
+            this.groupBoxEnvironment.SuspendLayout();
             this.SuspendLayout();
             // 
             // textBoxListFilePath
@@ -133,33 +133,93 @@
             this.textBoxOutputPath.Size = new System.Drawing.Size(424, 22);
             this.textBoxOutputPath.TabIndex = 0;
             // 
-            // groupBoxPath
+            // groupBoxEnvironment
             // 
-            this.groupBoxPath.BackColor = System.Drawing.SystemColors.Control;
-            this.groupBoxPath.Controls.Add(this.buttonSelectTestLogsPath);
-            this.groupBoxPath.Controls.Add(this.buttonSelectSummaryTemplate);
-            this.groupBoxPath.Controls.Add(this.buttonSelectReportTempate);
-            this.groupBoxPath.Controls.Add(this.buttonSelectListFile);
-            this.groupBoxPath.Controls.Add(this.buttonSelectTDSPath);
-            this.groupBoxPath.Controls.Add(this.buttonSelectOutputPath);
-            this.groupBoxPath.Controls.Add(this.label6);
-            this.groupBoxPath.Controls.Add(this.textBoxTestLogs);
-            this.groupBoxPath.Controls.Add(this.textBoxListFilePath);
-            this.groupBoxPath.Controls.Add(this.textBoxTDSPath);
-            this.groupBoxPath.Controls.Add(this.label5);
-            this.groupBoxPath.Controls.Add(this.textBoxReportTemplate);
-            this.groupBoxPath.Controls.Add(this.label4);
-            this.groupBoxPath.Controls.Add(this.textBoxSummaryTemplate);
-            this.groupBoxPath.Controls.Add(this.label3);
-            this.groupBoxPath.Controls.Add(this.textBoxOutputPath);
-            this.groupBoxPath.Controls.Add(this.label2);
-            this.groupBoxPath.Controls.Add(this.label1);
-            this.groupBoxPath.Location = new System.Drawing.Point(12, 12);
-            this.groupBoxPath.Name = "groupBoxPath";
-            this.groupBoxPath.Size = new System.Drawing.Size(614, 281);
-            this.groupBoxPath.TabIndex = 3;
-            this.groupBoxPath.TabStop = false;
-            this.groupBoxPath.Text = "Path:";
+            this.groupBoxEnvironment.BackColor = System.Drawing.SystemColors.Control;
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectTestLogsPath);
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectSummaryTemplate);
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectReportTempate);
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectListFile);
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectTDSPath);
+            this.groupBoxEnvironment.Controls.Add(this.buttonSelectOutputPath);
+            this.groupBoxEnvironment.Controls.Add(this.label6);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxTestLogs);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxListFilePath);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxTDSPath);
+            this.groupBoxEnvironment.Controls.Add(this.label5);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxReportTemplate);
+            this.groupBoxEnvironment.Controls.Add(this.label4);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxSummaryTemplate);
+            this.groupBoxEnvironment.Controls.Add(this.label3);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxOutputPath);
+            this.groupBoxEnvironment.Controls.Add(this.label2);
+            this.groupBoxEnvironment.Controls.Add(this.label1);
+            this.groupBoxEnvironment.Location = new System.Drawing.Point(12, 12);
+            this.groupBoxEnvironment.Name = "groupBoxEnvironment";
+            this.groupBoxEnvironment.Size = new System.Drawing.Size(614, 281);
+            this.groupBoxEnvironment.TabIndex = 3;
+            this.groupBoxEnvironment.TabStop = false;
+            this.groupBoxEnvironment.Text = "Environment";
+            // 
+            // buttonSelectTestLogsPath
+            // 
+            this.buttonSelectTestLogsPath.Location = new System.Drawing.Point(565, 165);
+            this.buttonSelectTestLogsPath.Name = "buttonSelectTestLogsPath";
+            this.buttonSelectTestLogsPath.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectTestLogsPath.TabIndex = 4;
+            this.buttonSelectTestLogsPath.Text = "...";
+            this.buttonSelectTestLogsPath.UseVisualStyleBackColor = true;
+            this.buttonSelectTestLogsPath.Click += new System.EventHandler(this.buttonSelectTestLogsPath_Click);
+            // 
+            // buttonSelectSummaryTemplate
+            // 
+            this.buttonSelectSummaryTemplate.Location = new System.Drawing.Point(565, 130);
+            this.buttonSelectSummaryTemplate.Name = "buttonSelectSummaryTemplate";
+            this.buttonSelectSummaryTemplate.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectSummaryTemplate.TabIndex = 4;
+            this.buttonSelectSummaryTemplate.Text = "...";
+            this.buttonSelectSummaryTemplate.UseVisualStyleBackColor = true;
+            this.buttonSelectSummaryTemplate.Click += new System.EventHandler(this.buttonSelectSummaryTemplate_Click);
+            // 
+            // buttonSelectReportTempate
+            // 
+            this.buttonSelectReportTempate.Location = new System.Drawing.Point(565, 95);
+            this.buttonSelectReportTempate.Name = "buttonSelectReportTempate";
+            this.buttonSelectReportTempate.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectReportTempate.TabIndex = 4;
+            this.buttonSelectReportTempate.Text = "...";
+            this.buttonSelectReportTempate.UseVisualStyleBackColor = true;
+            this.buttonSelectReportTempate.Click += new System.EventHandler(this.buttonSelectReportTempate_Click);
+            // 
+            // buttonSelectListFile
+            // 
+            this.buttonSelectListFile.Location = new System.Drawing.Point(565, 25);
+            this.buttonSelectListFile.Name = "buttonSelectListFile";
+            this.buttonSelectListFile.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectListFile.TabIndex = 4;
+            this.buttonSelectListFile.Text = "...";
+            this.buttonSelectListFile.UseVisualStyleBackColor = true;
+            this.buttonSelectListFile.Click += new System.EventHandler(this.buttonSelectListFile_Click);
+            // 
+            // buttonSelectTDSPath
+            // 
+            this.buttonSelectTDSPath.Location = new System.Drawing.Point(565, 60);
+            this.buttonSelectTDSPath.Name = "buttonSelectTDSPath";
+            this.buttonSelectTDSPath.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectTDSPath.TabIndex = 4;
+            this.buttonSelectTDSPath.Text = "...";
+            this.buttonSelectTDSPath.UseVisualStyleBackColor = true;
+            this.buttonSelectTDSPath.Click += new System.EventHandler(this.buttonSelectTDSPath_Click);
+            // 
+            // buttonSelectOutputPath
+            // 
+            this.buttonSelectOutputPath.Location = new System.Drawing.Point(565, 211);
+            this.buttonSelectOutputPath.Name = "buttonSelectOutputPath";
+            this.buttonSelectOutputPath.Size = new System.Drawing.Size(24, 22);
+            this.buttonSelectOutputPath.TabIndex = 4;
+            this.buttonSelectOutputPath.Text = "...";
+            this.buttonSelectOutputPath.UseVisualStyleBackColor = true;
+            this.buttonSelectOutputPath.Click += new System.EventHandler(this.buttonSelectOutputPath_Click);
             // 
             // label6
             // 
@@ -187,66 +247,6 @@
             this.buttonRun.UseVisualStyleBackColor = true;
             this.buttonRun.Click += new System.EventHandler(this.buttonRun_Click);
             // 
-            // buttonSelectOutputPath
-            // 
-            this.buttonSelectOutputPath.Location = new System.Drawing.Point(565, 211);
-            this.buttonSelectOutputPath.Name = "buttonSelectOutputPath";
-            this.buttonSelectOutputPath.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectOutputPath.TabIndex = 4;
-            this.buttonSelectOutputPath.Text = "...";
-            this.buttonSelectOutputPath.UseVisualStyleBackColor = true;
-            this.buttonSelectOutputPath.Click += new System.EventHandler(this.buttonSelectOutputPath_Click);
-            // 
-            // buttonSelectTDSPath
-            // 
-            this.buttonSelectTDSPath.Location = new System.Drawing.Point(565, 60);
-            this.buttonSelectTDSPath.Name = "buttonSelectTDSPath";
-            this.buttonSelectTDSPath.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectTDSPath.TabIndex = 4;
-            this.buttonSelectTDSPath.Text = "...";
-            this.buttonSelectTDSPath.UseVisualStyleBackColor = true;
-            this.buttonSelectTDSPath.Click += new System.EventHandler(this.buttonSelectTDSPath_Click);
-            // 
-            // buttonSelectSummaryTemplate
-            // 
-            this.buttonSelectSummaryTemplate.Location = new System.Drawing.Point(565, 130);
-            this.buttonSelectSummaryTemplate.Name = "buttonSelectSummaryTemplate";
-            this.buttonSelectSummaryTemplate.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectSummaryTemplate.TabIndex = 4;
-            this.buttonSelectSummaryTemplate.Text = "...";
-            this.buttonSelectSummaryTemplate.UseVisualStyleBackColor = true;
-            this.buttonSelectSummaryTemplate.Click += new System.EventHandler(this.buttonSelectSummaryTemplate_Click);
-            // 
-            // buttonSelectReportTempate
-            // 
-            this.buttonSelectReportTempate.Location = new System.Drawing.Point(565, 95);
-            this.buttonSelectReportTempate.Name = "buttonSelectReportTempate";
-            this.buttonSelectReportTempate.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectReportTempate.TabIndex = 4;
-            this.buttonSelectReportTempate.Text = "...";
-            this.buttonSelectReportTempate.UseVisualStyleBackColor = true;
-            this.buttonSelectReportTempate.Click += new System.EventHandler(this.buttonSelectReportTempate_Click);
-            // 
-            // buttonSelectTestLogsPath
-            // 
-            this.buttonSelectTestLogsPath.Location = new System.Drawing.Point(565, 165);
-            this.buttonSelectTestLogsPath.Name = "buttonSelectTestLogsPath";
-            this.buttonSelectTestLogsPath.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectTestLogsPath.TabIndex = 4;
-            this.buttonSelectTestLogsPath.Text = "...";
-            this.buttonSelectTestLogsPath.UseVisualStyleBackColor = true;
-            this.buttonSelectTestLogsPath.Click += new System.EventHandler(this.buttonSelectTestLogsPath_Click);
-            // 
-            // buttonSelectListFile
-            // 
-            this.buttonSelectListFile.Location = new System.Drawing.Point(565, 25);
-            this.buttonSelectListFile.Name = "buttonSelectListFile";
-            this.buttonSelectListFile.Size = new System.Drawing.Size(24, 22);
-            this.buttonSelectListFile.TabIndex = 4;
-            this.buttonSelectListFile.Text = "...";
-            this.buttonSelectListFile.UseVisualStyleBackColor = true;
-            this.buttonSelectListFile.Click += new System.EventHandler(this.buttonSelectListFile_Click);
-            // 
             // openFileDialog1
             // 
             this.openFileDialog1.FileName = "openFileDialog1";
@@ -257,14 +257,14 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(758, 305);
             this.Controls.Add(this.buttonRun);
-            this.Controls.Add(this.groupBoxPath);
+            this.Controls.Add(this.groupBoxEnvironment);
             this.Font = new System.Drawing.Font("Calibri", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "UT Checker";
             this.Load += new System.EventHandler(this.MainForm_Load);
-            this.groupBoxPath.ResumeLayout(false);
-            this.groupBoxPath.PerformLayout();
+            this.groupBoxEnvironment.ResumeLayout(false);
+            this.groupBoxEnvironment.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -281,7 +281,7 @@
         private System.Windows.Forms.TextBox textBoxReportTemplate;
         private System.Windows.Forms.TextBox textBoxSummaryTemplate;
         private System.Windows.Forms.TextBox textBoxOutputPath;
-        private System.Windows.Forms.GroupBox groupBoxPath;
+        private System.Windows.Forms.GroupBox groupBoxEnvironment;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.TextBox textBoxTestLogs;
         private System.Windows.Forms.Button buttonRun;
