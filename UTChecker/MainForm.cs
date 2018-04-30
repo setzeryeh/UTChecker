@@ -17,7 +17,7 @@ namespace UTChecker
     public partial class MainForm : Form
     {
 
-        TDS_Parser gTDSParser = null;
+        UTChecker gTDSParser = null;
 
         LoggerForm gLoggerForm = null;
 
@@ -30,7 +30,7 @@ namespace UTChecker
 
             InitializeComponent();
 
-            gTDSParser = new TDS_Parser(this, gLoggerForm);
+            gTDSParser = new UTChecker(this);
             gTDSParser.UpdatePathEvent += new EventHandler(this.UpdatePath);
             
 
@@ -48,14 +48,14 @@ namespace UTChecker
         private void MainForm_Load(object sender, EventArgs e)
         {
 
-            if (!gTDSParser.UpdatePathSetting())
+            if (!gTDSParser.UpdateSetting())
             {
                 
                 Environment.ExitCode = 111;
                 Environment.Exit(Environment.ExitCode);
             }
 
-            if (gTDSParser.RunUTCheckerBy == TDS_Parser.RunBy.CommandLine)
+            if (gTDSParser.RunUTCheckerBy == UTChecker.RunBy.CommandLine)
             {
                 if (gLoggerForm.IsDisposed)
                 {
@@ -74,7 +74,7 @@ namespace UTChecker
         }
 
 
-        public delegate void UpdatePathEventHandler(TDS_Parser.PathSetting ps);
+        public delegate void UpdatePathEventHandler(UTChecker.EnvrionmentSetting ps);
 
         /// <summary>
         /// A method for update the path (delegate method)
@@ -89,7 +89,7 @@ namespace UTChecker
             this.textBoxOutputPath.Text = gTDSParser.g_FilePathSetting.outputPath;
             this.textBoxReportTemplate.Text = gTDSParser.g_FilePathSetting.reportTemplate;
             this.textBoxSummaryTemplate.Text = gTDSParser.g_FilePathSetting.summaryTemplate;
-            this.textBoxTestLogs.Text = gTDSParser.g_FilePathSetting.testlogsPath;
+            this.textBoxTestLogPath.Text = gTDSParser.g_FilePathSetting.testlogPath;
 
         }
 
@@ -97,16 +97,16 @@ namespace UTChecker
         /// 
         /// </summary>
         /// <returns></returns>
-        public TDS_Parser.PathSetting GetPath()
+        public UTChecker.EnvrionmentSetting GetPath()
         {
-            TDS_Parser.PathSetting ps = new TDS_Parser.PathSetting();
+            UTChecker.EnvrionmentSetting ps = new UTChecker.EnvrionmentSetting();
 
             ps.listFile = this.textBoxListFilePath.Text;
             ps.tdsPath = this.textBoxTDSPath.Text;
             ps.outputPath = this.textBoxOutputPath.Text;
             ps.reportTemplate = this.textBoxReportTemplate.Text;
             ps.summaryTemplate = this.textBoxSummaryTemplate.Text;
-            ps.testlogsPath = this.textBoxTestLogs.Text;
+            ps.testlogPath = this.textBoxTestLogPath.Text;
 
             return ps;
         }
@@ -202,7 +202,7 @@ namespace UTChecker
         {
             if (this.folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
-                this.textBoxTestLogs.Text = this.folderBrowserDialog1.SelectedPath;
+                this.textBoxTestLogPath.Text = this.folderBrowserDialog1.SelectedPath;
             }
         }
 

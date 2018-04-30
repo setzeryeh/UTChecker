@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace UTChecker
 {
-    public partial class TDS_Parser
+    public partial class UTChecker
     {
         public static class ErrorMessage
         {

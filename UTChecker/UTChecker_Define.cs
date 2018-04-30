@@ -10,7 +10,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace UTChecker
 {
-    public partial class TDS_Parser
+    public partial class UTChecker
     {
         public static class Constants
         {
@@ -33,11 +33,10 @@ namespace UTChecker
             }
 
             public const int UTCheckerSelf = 1;   // UTChecker self.
-            public const int ArgumentsCount = 5;
+
+            // list, tds path, output path, template, summary, test log path
+            public const int ArgumentsCount = 6;
             public const int ArgumentsMatchLength = ArgumentsCount + UTCheckerSelf;
-
-
-
         }
 
         /// <summary>
@@ -45,18 +44,14 @@ namespace UTChecker
         /// </summary>
         public static class UTCheckerSetting
         {
-            
             public const string FileName = "UTChecker.setting";
-
             public const string Prefix = "@SET";
-
             public const string ListFile = "LIST_FILE";
             public const string TDSPath = "TDS_PATH";
             public const string OutputPath = "OUTPUT_PATH";
             public const string ReportTemplate = "REPORT_TEMPLATE";
             public const string SummaryTemplate = "SUMMARY_TEMPLATE";
-            public const string TestLogs = "TESTLOGS_PATH";
-
+            public const string TestLogPath = "TESTLOG_PATH";
         }
 
 
@@ -160,14 +155,14 @@ namespace UTChecker
         /// <summary>
         /// 
         /// </summary>
-        public struct PathSetting
+        public struct EnvrionmentSetting
         {
             public string listFile;
             public string tdsPath;
             public string outputPath;
             public string reportTemplate;
             public string summaryTemplate;
-            public string testlogsPath;
+            public string testlogPath;
 
         }
 
@@ -183,26 +178,40 @@ namespace UTChecker
             User,
         }
 
-        public PathSetting g_FilePathSetting { get; internal set; }
 
+        public enum TestResult
+        {
+            NOT_AVAILABLE = 0,
+            PASSED,
+            FAILED,
+            NA
+        }
 
-
+        public EnvrionmentSetting g_FilePathSetting { get; internal set; }
         public RunBy RunUTCheckerBy { get; private set; }
+        public event EventHandler UpdatePathEvent;
 
-
-        private BackgroundWorker g_bwTDSParse;
-
+        /// <summary>
+        /// BackgroundWorker handler for UTChecker
+        /// </summary>
+        private BackgroundWorker g_bwUTChecker;
 
         static public TestCaseTable g_tTestCaseTable;
 
         static Excel.Application g_excelApp = null;
 
+
+        static string g_sModuleListFile = "";
         static string g_sTDSPath = "";
         static string g_sOutputPath = "";
-        static string g_sModuleListFile = "";
         static string g_sTemplateFile = "";
         static string g_sSummaryReport = "";
+        static string g_sTestLogPath = "";
 
+
+        /// <summary>
+        /// A string that is used to be a path where the Log file saved at.
+        /// </summary>
         static string g_sErrorLogFile = "";
 
 

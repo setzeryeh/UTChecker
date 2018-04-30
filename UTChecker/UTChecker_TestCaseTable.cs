@@ -8,7 +8,7 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace UTChecker
 {
-    public partial class TDS_Parser
+    public partial class UTChecker
     {
 
         public bool WriteSummarySheet(Excel.Workbook a_excelBook, string a_sOutFile)

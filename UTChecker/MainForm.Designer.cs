@@ -46,7 +46,7 @@
             this.buttonSelectTDSPath = new System.Windows.Forms.Button();
             this.buttonSelectOutputPath = new System.Windows.Forms.Button();
             this.label6 = new System.Windows.Forms.Label();
-            this.textBoxTestLogs = new System.Windows.Forms.TextBox();
+            this.textBoxTestLogPath = new System.Windows.Forms.TextBox();
             this.buttonRun = new System.Windows.Forms.Button();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.openFileDialog1 = new System.Windows.Forms.OpenFileDialog();
@@ -143,7 +143,7 @@
             this.groupBoxEnvironment.Controls.Add(this.buttonSelectTDSPath);
             this.groupBoxEnvironment.Controls.Add(this.buttonSelectOutputPath);
             this.groupBoxEnvironment.Controls.Add(this.label6);
-            this.groupBoxEnvironment.Controls.Add(this.textBoxTestLogs);
+            this.groupBoxEnvironment.Controls.Add(this.textBoxTestLogPath);
             this.groupBoxEnvironment.Controls.Add(this.textBoxListFilePath);
             this.groupBoxEnvironment.Controls.Add(this.textBoxTDSPath);
             this.groupBoxEnvironment.Controls.Add(this.label5);
@@ -226,16 +226,16 @@
             this.label6.AutoSize = true;
             this.label6.Location = new System.Drawing.Point(10, 168);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(86, 14);
+            this.label6.Size = new System.Drawing.Size(80, 14);
             this.label6.TabIndex = 3;
-            this.label6.Text = "Test Logs Path:";
+            this.label6.Text = "Test Log Path:";
             // 
-            // textBoxTestLogs
+            // textBoxTestLogPath
             // 
-            this.textBoxTestLogs.Location = new System.Drawing.Point(135, 165);
-            this.textBoxTestLogs.Name = "textBoxTestLogs";
-            this.textBoxTestLogs.Size = new System.Drawing.Size(424, 22);
-            this.textBoxTestLogs.TabIndex = 2;
+            this.textBoxTestLogPath.Location = new System.Drawing.Point(135, 165);
+            this.textBoxTestLogPath.Name = "textBoxTestLogPath";
+            this.textBoxTestLogPath.Size = new System.Drawing.Size(424, 22);
+            this.textBoxTestLogPath.TabIndex = 2;
             // 
             // buttonRun
             // 
@@ -283,7 +283,7 @@
         private System.Windows.Forms.TextBox textBoxOutputPath;
         private System.Windows.Forms.GroupBox groupBoxEnvironment;
         private System.Windows.Forms.Label label6;
-        private System.Windows.Forms.TextBox textBoxTestLogs;
+        private System.Windows.Forms.TextBox textBoxTestLogPath;
         private System.Windows.Forms.Button buttonRun;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.Button buttonSelectTestLogsPath;

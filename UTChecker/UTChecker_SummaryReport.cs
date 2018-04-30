@@ -9,15 +9,55 @@ using Excel = Microsoft.Office.Interop.Excel;
 
 namespace UTChecker
 {
-    public partial class TDS_Parser
+    public partial class UTChecker
     {
+
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="output_path"></param>
+        /// <returns></returns>
+        public string PrepareSummaryReport(string templatePath, string outputPath)
+        {
+            string dest = null;
+
+            try
+            {
+                // get the file name of summary report
+                String fileName = Path.GetFileName(templatePath);
+
+                // append the file name to output path
+                dest = outputPath + SummaryReport.FILE_NAME;
+
+
+                //Remove old output file.
+                if (File.Exists(dest))
+                {
+                    File.Delete(dest);
+                }
+
+                File.Copy(g_sSummaryReport, dest);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error occurred when prepare the summary report\r\n" + ex.Message);
+                return null;
+            }
+
+            return dest;
+        }
+
+
+
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="a_sSummaryReportFile"></param>
         /// <returns></returns>
-        public List<string> ReadAllModuleNames(string a_sSummaryReportFile)
+        public List<string> ReadAllModuleNamesFromExcel(string a_sSummaryReportFile)
         {
             string sFuncName = "[ReadSummaryModuleTable]";
 
@@ -92,59 +132,25 @@ namespace UTChecker
         }
 
 
+
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="a_sModuleName"></param>
         /// <param name="lsModuleNames"></param>
         /// <returns></returns>
-        public static int GetModuleId(string a_sModuleName, List<string> lsModuleNames)
+        public int GetModuleId(string a_sModuleName, List<string> lsModuleNames)
         {
             a_sModuleName = a_sModuleName.Replace("_", " ");
 
             for (int i = 0; i < lsModuleNames.Count; i++)
             {
                 if (a_sModuleName == lsModuleNames[i])
-                    return i+1;
+                    return i + 1;
             }
 
             return -1;
-        }
-
-
-
-
-
-
-
-        public string PrepareSummaryReport(string output_path)
-        {
-            string dest = null;
-
-            try
-            {
-                // get the file name of summary report
-                String fileName = Path.GetFileName(g_sSummaryReport);
-
-                // append the file name to output path
-                dest = output_path + SummaryReport.FILE_NAME;
-
-
-                //Remove old output file.
-                if (File.Exists(dest))
-                {
-                    File.Delete(dest);
-                }
-
-                File.Copy(g_sSummaryReport, dest);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error occurred when prepare the summary report\r\n" + ex.Message);
-                return null;
-            }
-
-            return dest;
         }
 
 
@@ -175,7 +181,7 @@ namespace UTChecker
         //
         // Write the information of ut for each module into Summary report.
         //
-        public bool WriteSummaryReport(string a_sExcelFile, ref List<ModuleInfo> items)
+        public bool WriteSummaryReport(string a_sExcelFile, ModuleInfo item, int index)
         {
             string sFuncName = "[WriteSummaryReport]";
 
@@ -196,64 +202,57 @@ namespace UTChecker
                 return false;
             }
 
+      
             try
             {
                 // Open the EXCEL file.
                 excelBook = OpenExcelWorkbook(g_excelApp, a_sExcelFile, false);
                 excelSheet = excelBook.Worksheets.get_Item(SummaryReport.SHEET_NAME);
                 excelRange = excelSheet.UsedRange;
+                
+                
+                // index
+                //excelRange.Cells[int, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
 
-                // a count indeicates the row of starting to write the date.
-                int dRawCount = SummaryReport.FIRST_ROW;
+                // name
+                excelRange.Cells[index, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
-                foreach (ModuleInfo item in items)
+                excelRange.Cells[index, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.testCase.dTestCaseFuncCount;
+
+                // no test needed
+                excelRange.Cells[index, SummaryReport.ColumnIndex.GETTER_SETTER] = item.gettersetter;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.EMPTY] = item.emptymethod;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.INTERFACE] = item.interfacemethod;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.ABSTRACE] = item.abstractmethod;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.NATIVE] = item.nativemethod;
+
+                // test script
+                excelRange.Cells[index, SummaryReport.ColumnIndex.MOCKITO] = item.mockito;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.POWERMOCKIT] = item.powermockito;
+
+                // by code analysis
+                excelRange.Cells[index, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.codeanalysis;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.PURE_CALL] = item.purefunctioncalls;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.pureUIfunctioncalls;
+
+                // unknow
+                excelRange.Cells[index, SummaryReport.ColumnIndex.UNKNOW] = item.unknow;
+
+
+                excelRange.Cells[index, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.count;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.testCase.dNormalEntryCount;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.testCase.dRepeatedEntryCount;
+                excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.testCase.dErrorEntryCount;
+
+                excelRange.Cells[index, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
+
+                excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
+
+                if (item.testCase.dErrorCount > 0)
                 {
-                    // index
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
-
-                    // name
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
-
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.testCase.dTestCaseFuncCount;
-
-                    // no test needed
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.GETTER_SETTER] = item.gettersetter;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.EMPTY] = item.emptymethod;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.INTERFACE] = item.interfacemethod;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.ABSTRACE] = item.abstractmethod;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.NATIVE] = item.nativemethod;
-
-                    // test script
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.MOCKITO] = item.mockito;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.POWERMOCKIT] = item.powermockito;
-
-                    // by code analysis
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.codeanalysis;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.PURE_CALL] = item.purefunctioncalls;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.pureUIfunctioncalls;
-
-                    // unknow
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.UNKNOW] = item.unknow;
-
-
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.count;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.testCase.dNormalEntryCount;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.testCase.dRepeatedEntryCount;
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.testCase.dErrorEntryCount;
-
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
-
-                    excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
-
-                    if (item.testCase.dErrorCount > 0)
-                    {
-                        excelRange.Cells[dRawCount, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
-                    }
-
-
-                    dRawCount++;
+                    excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
                 }
 
                 // Save the modified template as the output file.

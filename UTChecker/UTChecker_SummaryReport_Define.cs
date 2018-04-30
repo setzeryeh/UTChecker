@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 namespace UTChecker
 {
-    public partial class TDS_Parser
+    public partial class UTChecker
     {
 
         static class SummaryReport
