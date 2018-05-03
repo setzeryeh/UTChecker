@@ -12,10 +12,6 @@ namespace UTChecker
 
         static class TestCaseTableConstants
         {
-            public const string INPUT_FILENAME_PREFIX = "NUGEN Test Data Sheet - ";
-            public const string INPUT_FILE_EXT_NAME = "*.xlsx";
-            public const string FILENAME_PREFIX = "Method_TC_Lookup_Table_of_";
-            public const string SHEET_NAME = "LookupTable";
 
             // Indices for the summary sheet
             public enum RowIndex
@@ -47,6 +43,8 @@ namespace UTChecker
                 TDS_FILE,
                 TC_SOURCE_FILE,
                 NOTE,
+                TEST_LOG,
+                TEST_LOG_PATH,
             }
 
             public const int HEADER_HEIGHT = 2;

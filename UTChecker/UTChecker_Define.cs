@@ -14,6 +14,42 @@ namespace UTChecker
     {
         public static class Constants
         {
+            /// <summary>
+            /// Prefix and Ext file name for TDS
+            /// </summary>
+            public const string TDS_FILENAME_PREFIX = "NUGEN Test Data Sheet - ";
+            public const string TDS_FILENAME_EXT = "*.xlsx";
+
+            /// <summary>
+            /// Ext file name for test log.
+            /// </summary>
+            public const string TESTLOG_FILENAME_EXT = "*.txt";
+
+            /// <summary>
+            /// Prefix file name for Report.
+            /// </summary>
+            public const string REPORT_PREFIX = "Method_TC_Lookup_Table_of_";
+
+
+            public const string SHEET_NAME = "LookupTable";
+            public const string SHEET_SUMMARY = "Summary";
+
+            /// <summary>
+            /// The numbers of Argument (Command Line)
+            /// </summary>
+            public static class CommandArguments
+            {
+                public const int Minium = 1;   // UTChecker self.
+
+
+                // list, tds path, output path, template, summary, test log path
+                public const int Args = 6;
+                public const int Match = Args  + Minium;
+            }
+
+            /// <summary>
+            /// String Tokens
+            /// </summary>
             public static class StringTokens
             {
                 public const string DESIGN_ID_PREFIX = "NUSWDD";
@@ -27,16 +63,14 @@ namespace UTChecker
                 public const string DEFAULT_INVALID_VALUE = ERROR_MSG_HEADER + "Unknown";
             }
 
+            /// <summary>
+            /// Color
+            /// </summary>
             public class Color
             {
                 static public System.Int32 RED = System.Drawing.ColorTranslator.ToOle(System.Drawing.Color.Red);
             }
 
-            public const int UTCheckerSelf = 1;   // UTChecker self.
-
-            // list, tds path, output path, template, summary, test log path
-            public const int ArgumentsCount = 6;
-            public const int ArgumentsMatchLength = ArgumentsCount + UTCheckerSelf;
         }
 
         /// <summary>
@@ -148,6 +182,7 @@ namespace UTChecker
             public int unknow;
 
             public int count;
+            public int logNumError;
             public TestCaseTable testCase;
         }
 

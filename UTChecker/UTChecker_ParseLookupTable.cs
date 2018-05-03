@@ -89,19 +89,19 @@ namespace UTChecker
                 // Get the used range of the "LookupTable" sheet.
                 try
                 {
-                    excelSheet = (Excel.Worksheet)a_excelBook.Worksheets.get_Item(TestCaseTableConstants.SHEET_NAME);
+                    excelSheet = (Excel.Worksheet)a_excelBook.Worksheets.get_Item(Constants.SHEET_NAME);
                     excelRange = excelSheet.UsedRange;
                 }
                 catch
                 {
-                    Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet can be found.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + Constants.SHEET_NAME + "\" sheet can be found.");
                     return ++dErrorCount;
                 }
 
                 // Check the column count.
                 if (4 > excelRange.Columns.Count)
                 {
-                    Logger.Print(Constants.StringTokens.MSG_BULLET, "Invalid \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "Invalid \"" + Constants.SHEET_NAME + "\" sheet.");
                     return ++dErrorCount;
                 }
 
@@ -116,7 +116,7 @@ namespace UTChecker
                     {
                         if (i == dFirstRow)
                         {
-                            Logger.Print(Constants.StringTokens.MSG_BULLET, "No data contained in \"" + TestCaseTableConstants.SHEET_NAME + "\" sheet.");
+                            Logger.Print(Constants.StringTokens.MSG_BULLET, "No data contained in \"" + Constants.SHEET_NAME + "\" sheet.");
                             dErrorCount++;
                         }
                         break;
@@ -199,8 +199,11 @@ namespace UTChecker
                         Logger.Print(sMsgHeader, sMsg);
                         dErrorCount++;
                     }
-                    else // Form the unique method name: Filename + TC label name.
+                    else
+                    {   
+                        // Form the unique method name: Filename + TC label name.
                         sTCLabelName = sClassName + sTCLabelName0;
+                    }
 
 
                     // Check & modify TC func.
@@ -221,7 +224,9 @@ namespace UTChecker
                             dErrorCount++;
                         }
                         else
+                        {
                             sTCFuncName = Constants.StringTokens.NA + " (" + sTCNote + ")";
+                        }
                     }
                     else if (Constants.StringTokens.NA == sTCFuncName0)
                     {
@@ -234,7 +239,10 @@ namespace UTChecker
                             dErrorCount++;
                         }
                         else
+                        {
                             sTCFuncName = Constants.StringTokens.NA + " (" + sTCNote + ")";
+                        }
+
                     }
                     else if (sTCFuncName0.StartsWith(Constants.StringTokens.NA))
                     {
@@ -247,14 +255,36 @@ namespace UTChecker
                         Logger.Print(sMsgHeader, sMsg);
                         dErrorCount++;
                     }
-                    else // Form the unique method name: Filename + method name.
+                    else
+                    {
+                        // Form the unique method name: Filename + method name.
                         sTCFuncName = sClassName + sTCFuncName0;
+                    }
+
+                    if (eTestMeans == TestMeans.TEST_SCRIPT && sTCFuncName0.StartsWith(Constants.StringTokens.NA))
+                    {
+                        sMsg = ErrorMessage.MISSING_TESTCASE_FUNCTION_NAME + ": \"" + sTCFuncName0 + "\"";
+                        sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
+                        Logger.Print(sMsgHeader, sMsg);
+                        dErrorCount++;
+                    }
+
+
+
 
                     // Determine the test case source file name.
                     if (sTCFuncName0.StartsWith(Constants.StringTokens.NA))
+                    {
                         sTCSourceFileName = sTCFuncName;
+                    }
                     else
+                    {
                         sTCSourceFileName = a_sSourceFileName.Replace(".java", "Test.java");
+                    }
+
+
+
+
 
                     // Record the data read.
                     TestCaseItem tItem = new TestCaseItem();

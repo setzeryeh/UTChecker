@@ -186,7 +186,8 @@ namespace UTChecker
                 {
                     try
                     {
-                        excelRange.AutoFilter(TestCaseTableConstants.ColumnIndex.NG_MARKER, Constants.StringTokens.X, Excel.XlAutoFilterOperator.xlAnd, Type.Missing, true);
+                        //excelRange.AutoFilter(TestCaseTableConstants.ColumnIndex.NG_MARKER, Constants.StringTokens.X, Excel.XlAutoFilterOperator.xlAnd, Type.Missing, true);
+                        excelRange.Range["A1", "A1"].AutoFilter(TestCaseTableConstants.ColumnIndex.NG_MARKER, Constants.StringTokens.X);
                     }
                     catch (SystemException e)
                     {
@@ -221,6 +222,7 @@ namespace UTChecker
                 Logger.Print(sFuncName, ErrorMessage.OUTPUT_FILE_IS_NULL);
                 return false;
             }
+
             if (0 >= g_tTestCaseTable.ltItems.Count)
             {
                 Logger.Print(sFuncName, ErrorMessage.NO_ENTRY_TO_BE_SAVED);

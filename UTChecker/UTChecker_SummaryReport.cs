@@ -202,58 +202,66 @@ namespace UTChecker
                 return false;
             }
 
-      
+
             try
             {
                 // Open the EXCEL file.
                 excelBook = OpenExcelWorkbook(g_excelApp, a_sExcelFile, false);
                 excelSheet = excelBook.Worksheets.get_Item(SummaryReport.SHEET_NAME);
                 excelRange = excelSheet.UsedRange;
-                
-                
+
+
                 // index
                 //excelRange.Cells[int, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
-
+                int dRow = SummaryReport.HEADER_HEIGHT + index;
                 // name
-                excelRange.Cells[index, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
-                excelRange.Cells[index, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.testCase.dTestCaseFuncCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.testCase.dTestCaseFuncCount;
 
                 // no test needed
-                excelRange.Cells[index, SummaryReport.ColumnIndex.GETTER_SETTER] = item.gettersetter;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.EMPTY] = item.emptymethod;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.INTERFACE] = item.interfacemethod;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.ABSTRACE] = item.abstractmethod;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.NATIVE] = item.nativemethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.GETTER_SETTER] = item.gettersetter;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.EMPTY] = item.emptymethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.INTERFACE] = item.interfacemethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ABSTRACE] = item.abstractmethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NATIVE] = item.nativemethod;
 
                 // test script
-                excelRange.Cells[index, SummaryReport.ColumnIndex.MOCKITO] = item.mockito;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.POWERMOCKIT] = item.powermockito;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.MOCKITO] = item.mockito;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.POWERMOCKIT] = item.powermockito;
 
                 // by code analysis
-                excelRange.Cells[index, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.codeanalysis;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.PURE_CALL] = item.purefunctioncalls;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.pureUIfunctioncalls;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.codeanalysis;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_CALL] = item.purefunctioncalls;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.pureUIfunctioncalls;
 
                 // unknow
-                excelRange.Cells[index, SummaryReport.ColumnIndex.UNKNOW] = item.unknow;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.UNKNOW] = item.unknow;
 
 
-                excelRange.Cells[index, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.count;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.testCase.dNormalEntryCount;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.testCase.dRepeatedEntryCount;
-                excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.testCase.dErrorEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.count;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.testCase.dNormalEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.testCase.dRepeatedEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.testCase.dErrorEntryCount;
 
-                excelRange.Cells[index, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
 
-                excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.LOGS_ERROR_COUNT] = item.logNumError;
 
                 if (item.testCase.dErrorCount > 0)
                 {
-                    excelRange.Cells[index, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
+                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
                 }
+
+                if (item.logNumError > 0)
+                {
+                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.LOGS_ERROR_COUNT].Interior.Color = Constants.Color.RED;
+
+                }
+
 
                 // Save the modified template as the output file.
                 g_excelApp.DisplayAlerts = false; // show no alert while overwritten old file

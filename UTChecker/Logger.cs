@@ -153,13 +153,28 @@ namespace UTChecker
         /// <summary>
         /// this method to clear the Message and Progream in LoggerForm
         /// </summary>
-        public static void Clear()
+        public static void ClearAll()
         {
-            ClearMessage();
-            ClearProgress();
+            _ClearMessage();
+            _ClearProgress();
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public static void ClearMessage()
+        {
+            _ClearMessage();
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static void ClearProgress()
+        {
+            _ClearProgress();
+        }
 
 
 
@@ -195,7 +210,7 @@ namespace UTChecker
         /// <summary>
         /// This method triggers an event to clear the message on LoggerForm
         /// </summary>
-        private static void ClearMessage()
+        private static void _ClearMessage()
         {
             if (ClearMessageEvent != null)
             {
@@ -206,7 +221,7 @@ namespace UTChecker
         /// <summary>
         /// This method triggers an event to clear the progress on LoggerForm
         /// </summary>
-        private static void ClearProgress()
+        private static void _ClearProgress()
         {
             if (ClearProgressEvent != null)
             {

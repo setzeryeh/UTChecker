@@ -436,9 +436,13 @@ namespace UTChecker
                         // Read data form the "TestCase" sheet.
                         sShortTDSFileName = sFile.Replace(g_sTDSPath + a_sModuleName + "\\", "");
                         if (bIsJava)
+                        {
                             ReadTestCasesFromTDSFile_Java(excelBook, ref sShortTDSFileName, ref sSourceFileName);
+                        }
                         else
+                        {
                             ReadTestCasesFromTDSFile_C(excelBook, ref sShortTDSFileName, ref sSourceFileName, ref sMethodName);
+                        }
 
                         dProceedFileCount++;
                     }
@@ -466,6 +470,259 @@ namespace UTChecker
 
             return true;
         }
+
+
+        private int CompareTDSandTestLogs(string name, string templateFile, List<string> testLogs)
+        {
+            string sFuncName = "[CompareTDSandTestLogs]";
+            string compLog = name + "_cmp.txt";
+
+            int errorCount = -1;
+
+            // for excel workbook
+            Excel.Workbook excelBook;
+
+            // for sheet LookupTable
+            Excel.Worksheet excelSheetLookupTable;
+            Excel.Range excelRangeLookupTable;
+
+            // for sheet Summary
+            Excel.Worksheet excelSheetSummary;
+            Excel.Range excelRangeSummary;
+
+
+
+            List<string> tempLog = testLogs;
+
+            // Check the EXCEL app.
+            if (null == g_excelApp)
+            {
+                Logger.Print(sFuncName, "EXCEL app is null.");
+                return -1;
+            }
+
+
+            // Open the TDS file & get the lookup-table sheet.
+            //g_excelApp.DisplayAlerts = false;
+
+            excelBook = OpenExcelWorkbook(g_excelApp, templateFile, false);  // ready only
+            if (null == excelBook)
+            {
+                Logger.Print($"{sFuncName} Error occurred when open excel file.");
+                return -1;
+            }
+
+
+
+            // Get the used range of the "LookupTable" sheet.
+            try
+            {
+                excelSheetLookupTable = (Excel.Worksheet)excelBook.Worksheets.get_Item(Constants.SHEET_NAME);
+                excelRangeLookupTable = excelSheetLookupTable.UsedRange;
+                
+
+                excelSheetSummary = (Excel.Worksheet)excelBook.Worksheets.get_Item(Constants.SHEET_SUMMARY);
+                excelRangeSummary = excelSheetSummary.UsedRange;
+
+            }
+            catch
+            {
+                Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + Constants.SHEET_NAME + "\" sheet can be found.");
+                return -1;
+            }
+
+
+
+            // clear
+            List<string> testItem = new List<string>();
+            testItem.Clear();
+
+            // clear
+            List<string> noNeedItem = new List<string>();
+            noNeedItem.Clear();
+
+
+
+            int dFirstRow = 3;
+            for (int i = dFirstRow; i <= excelRangeLookupTable.Rows.Count; i++)
+            {
+
+                string NG_Mark= ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.NG_MARKER], "", true);
+
+                if (NG_Mark.Equals("X"))
+                {
+                    continue;
+                }
+
+
+                // get the class name from excel column B
+                string className = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.SOURCE_FILE], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
+
+                if (className.IndexOf(".java") == -1)
+                {
+                    continue;
+                }
+
+                // remove ext filename ".java"
+                className = className.Replace(".java", "");
+                
+
+
+                string testCaseSouce = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
+                string testCaseName = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TC_NAME], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
+                string testType = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.NOTE], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
+
+
+                if (testType.Equals(TestType.ByPowerMocktio) || testType.Equals(TestType.ByMockito))
+                {
+
+                    // get the test case source from excel column G
+                    testCaseSouce = testCaseSouce.Replace(".java", "");
+                    testCaseName = testCaseName.Substring(className.Length + 1); // with '.', so plus 1
+
+
+                    
+                    StringBuilder tc_className = new StringBuilder("");
+                    StringBuilder tc_fileName = new StringBuilder("");
+                    StringBuilder tc_path = new StringBuilder("");
+
+
+                    int testLogsIndex = 0;
+                    bool bFind = false;
+
+                    foreach (string line in tempLog)
+                    {
+                        char[] spilter = new char[] { ',', ' ' };
+                        string[] s = line.Split(spilter, StringSplitOptions.RemoveEmptyEntries);
+
+                        tc_className.Clear();
+                        tc_fileName.Clear();
+                        tc_path.Clear();
+
+                        tc_className.Append(s[0]);
+                        tc_fileName.Append(s[1]);
+                        tc_path.Append(s[2]);
+
+                        if (tc_className.ToString().Equals(testCaseSouce) &&
+                            tc_fileName.ToString().Equals(testCaseName + ".txt"))
+                        {
+                            bFind = true;
+                            break;
+                        }
+
+                        testLogsIndex++;
+
+                    }
+
+                    if (bFind)
+                    {
+                        // remove founded item from list.
+                        tempLog.RemoveAt(testLogsIndex);
+
+                        excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TEST_LOG] = tc_fileName.ToString();
+                        excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = tc_path.ToString();
+
+                    }
+
+                    testItem.Add($"{i}, {className}, {testCaseSouce}, {testCaseName}, {tc_fileName.ToString()}");
+
+                }
+                else
+                {
+                    excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TEST_LOG] = "N/A";
+                    excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = "N/A";
+
+                    noNeedItem.Add($"{i}, {className}, {testCaseSouce}, {testCaseName}");
+                }
+
+            }
+
+
+            //if (File.Exists(compLog))
+            //{
+            //    File.Delete(compLog);
+            //}
+
+            //foreach (string s in testItem)
+            //{
+            //    using (StreamWriter sw = File.AppendText(compLog))
+            //    {
+            //        sw.WriteLine(s);
+            //    }
+            //}
+
+            //foreach (string s in noNeedItem)
+            //{
+            //    using (StreamWriter sw = File.AppendText(compLog))
+            //    {
+            //        sw.WriteLine(s);
+            //    }
+            //}
+
+            if (tempLog.Count != 0)
+            {
+                int lastLine = excelRangeLookupTable.Rows.Count + 1;
+
+                foreach (string line in tempLog)
+                {
+                    //using (StreamWriter sw = File.AppendText(compLog))
+                    //{
+                    //    sw.WriteLine($"Unknow: {line}");
+                    //}
+
+                    char[] spilter = new char[] { ',', ' ' };
+                    string[] s = line.Split(spilter, StringSplitOptions.RemoveEmptyEntries);
+
+                    string testCodeClass = s[0];
+                    string testCodeFileName = s[1];
+                    string testCaseName = s[1].Replace(".txt", "");
+                    string testCodePath = s[2];
+
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.NG_MARKER] = Constants.StringTokens.X;
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.SOURCE_FILE] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.METHOD_NAME] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TC_LABEL] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TC_NAME] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TDS_FILE] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE] = testCodeClass + ".java";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.NOTE] = "N/A";
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TEST_LOG] = testCaseName;
+                    excelRangeLookupTable.Cells[lastLine, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = testCodePath;
+                    lastLine++;
+                }
+
+                // update the error count in sheet "Summary"
+                string errString = ReadStringFromExcelCell(excelRangeSummary.Cells[TestCaseTableConstants.RowIndex.ERROR_COUNT, 2], "", true);
+
+                excelRangeSummary.Cells[TestCaseTableConstants.RowIndex.ERROR_COUNT, 2] = Convert.ToInt16(errString) + tempLog.Count; ;
+
+                errorCount = tempLog.Count;
+
+
+                try
+                {
+                    // autofilter
+                    excelSheetLookupTable.Range["A1", "A1"].AutoFilter(1, "X");
+
+                }
+                catch (SystemException e)
+                {
+                    Logger.Print(e.ToString());
+                }
+
+            }
+            else
+            {
+                errorCount = 0;
+            }
+
+            excelBook.Save();
+            excelBook.Close();
+
+
+            return errorCount;
+        }
+
 
 
     }

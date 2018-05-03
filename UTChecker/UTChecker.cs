@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -93,7 +94,7 @@ namespace UTChecker
             else
             {
                 MessageBox.Show("Done");
-                //this.progressBarUTChecker.Value = 0;
+                Logger.ClearProgress();
             }
         }
 
@@ -142,7 +143,8 @@ namespace UTChecker
             int dUnknow = 0;
 
 
-            Logger.Clear();
+            Logger.ClearAll();
+            
             Logger.Print("Run UT Checker.", "", Logger.PrintOption.Logger);
 
 
@@ -199,7 +201,7 @@ namespace UTChecker
             Logger.UpdateProgress(value);
 
 
-            Logger.Print($"Total {g_lsModules.Count} modules would be checked.");
+            Logger.Print($"Total {g_lsModules.Count} module(s) would be checked.", Logger.PrintOption.Both);
 
 
             try
@@ -208,20 +210,20 @@ namespace UTChecker
                 foreach (string sItem in g_lsModules)
                 {
 
-
-                    // Determine the input/output file names.
+                    // for _TDS.list
                     sTDSPath = g_sTDSPath + sItem + "\\";
                     sListFileForTDS = sTDSPath + "_TDS.list";
 
-                    sOutputFile = g_sOutputPath + TestCaseTableConstants.FILENAME_PREFIX + sItem + ".xlsx";
+                    // for report
+                    sOutputFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".xlsx";
 
-                    sTestLogPath = g_sTestLogPath + sItem + "\\";
-                    sListFileForLog = sTestLogPath + "_Log.list";
 
-                    g_sErrorLogFile = g_sOutputPath + TestCaseTableConstants.FILENAME_PREFIX + sItem + ".log";
 
+                    // for Error log
+                    g_sErrorLogFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".log";
 
                     Logger.FileName = g_sErrorLogFile;
+
                     // Remove old log file.
                     if (File.Exists(g_sErrorLogFile))
                     {
@@ -268,12 +270,11 @@ namespace UTChecker
 
                     // Write the spliter for reading the error log file easily.
                     // (This section must be located behind the remove-error-file section. Otherwise the message will be written to the previous error log file.)
-                    Logger.Print("", "---------------------------------------------------------------");
-                    Logger.Print("", sItem);
-                    Logger.Print("", "---------------------------------------------------------------");
+                    Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
+                    Logger.Print("", sItem, Logger.PrintOption.Both);
+                    Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
 
-                    Logger.Print($"{sItem} is processing now.");
-
+                   
                     try
                     {
 
@@ -284,11 +285,12 @@ namespace UTChecker
                             continue;
                         }
 
+               
                         // Search and collect all TDS files.
                         // * Input: Start path
                         // * Output: A list containing the TDS file names.
-                        SearchTDSFiles(sTDSPath, ref g_lsTDSFiles, sListFileForTDS);
-                        if (0 == g_lsTDSFiles.Count)
+                        g_lsTDSFiles = SearchTDSFiles(sTDSPath, sListFileForTDS);
+                        if ((null == g_lsTDSFiles) || (0 == g_lsTDSFiles.Count))
                         {
                             continue;
                         }
@@ -301,16 +303,42 @@ namespace UTChecker
                         }
 
 
+
                         // Count designs and methods.
                         CountAndMarkResults();
 
+
                         Logger.Print("Writing result to report.");
+
 
                         // Write the results to as an overall lookup table.
                         if (!SaveResults(g_sTemplateFile, sOutputFile))
                         {
                             bIsErrorEverOccurred = true;
                         }
+
+
+
+
+
+                        Logger.Print("Search and Compare test logs");
+
+                        List<string> testLogs = SearchPowerMockitoTestLogs(sItem, g_sTestLogPath);
+
+                        Logger.Print($"{testLogs.Count} log(s) are collected.", Logger.PrintOption.Both);
+
+
+                        int logNumError = CompareTDSandTestLogs(sItem, sOutputFile, testLogs);
+
+                        if (logNumError > 0 || logNumError <= -1)
+                        {
+                            bIsErrorEverOccurred = true;
+                        }
+
+
+                        Logger.Print($"Compare TDS and TestLog done. {testLogs.Count}");
+
+
 
 
 
@@ -338,6 +366,8 @@ namespace UTChecker
 
                         item.count = g_tTestCaseTable.ltItems.Count;
                         item.testCase = g_tTestCaseTable;
+
+                        item.logNumError = logNumError;
 
                         // push item into a List
                         g_lsModuleInfo.Add(item);
@@ -460,8 +490,8 @@ namespace UTChecker
 
 
                 // Show overall summary info.
-                Logger.Print("", "\n---------------------------------------------------------------", Logger.PrintOption.Both);
-                Logger.Print("", " Overall Summary:");
+                Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
+                Logger.Print("", " Overall Summary:", Logger.PrintOption.Both);
                 Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
 
                 Logger.Print(" Total # of test cases with repeated labels: " + dRepeatedEntryCount.ToString(), "", Logger.PrintOption.Both);
@@ -499,7 +529,7 @@ namespace UTChecker
                 }
             }
 
-            Logger.Print("All Jobs Done!");
+            Logger.Print("All Jobs Done! " + DateTime.Now.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
             Logger.UpdateProgress(100);
 
             return 0;
@@ -558,7 +588,9 @@ namespace UTChecker
             char[] delimiter = new char[] { ' ', '"' };
             string[] args = Environment.CommandLine.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
-            if (args.Length == Constants.ArgumentsMatchLength)
+
+
+            if (args.Length == Constants.CommandArguments.Match)
             {
 
                 // update setting to textbox
@@ -582,14 +614,10 @@ namespace UTChecker
             }
             else
             {
-                if ((args.Length > Constants.ArgumentsMatchLength) ||
-                    ((args.Length < Constants.ArgumentsMatchLength) &&
-                    args.Length > Constants.UTCheckerSelf))
-                {
-                    Logger.Print(sFuncName, "Invalid Arguments.");
-                    bDone = false;
-                }
-                else if (File.Exists(UTCheckerSetting.FileName))
+
+                Logger.Print(sFuncName, "Invalid Arguments, Check setting file.");
+
+                if (File.Exists(UTCheckerSetting.FileName))
                 {
                     string[] lines = System.IO.File.ReadAllLines(@"UTChecker.setting");
 
@@ -796,18 +824,6 @@ namespace UTChecker
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
         /// <summary>
         /// Read the list of Modules from a List File.
         /// </summary>
@@ -891,7 +907,7 @@ namespace UTChecker
                 return false;
             }
 
-            Logger.Print(sFuncName, "Done");
+            Logger.Print(sFuncName, "Done.");
 
             return true;
         }
