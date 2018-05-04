@@ -249,17 +249,10 @@ namespace UTChecker
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
 
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.LOGS_ERROR_COUNT] = item.logNumError;
 
                 if (item.testCase.dErrorCount > 0)
                 {
                     excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
-                }
-
-                if (item.logNumError > 0)
-                {
-                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.LOGS_ERROR_COUNT].Interior.Color = Constants.Color.RED;
-
                 }
 
 

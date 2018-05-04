@@ -38,7 +38,8 @@ namespace UTChecker
             public const string REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC = "Reason shall be given for N/A TC func.";
 
             public const string TC_TEST_MEANS_SHALL_NOT_BE_UNKNOWN = "TC test means shall not be unknown";
-            public const string MISSING_TESTCASE_FUNCTION_NAME = "The function name of test case is  missing becasue this method can be implemented.";
+            public const string MISSING_TESTCASE_FUNCTION_NAME = "Missing Test Case";
+            public const string TESTLOG_IS_MISSING = "The Test Log is missing";
         }
     }
 }

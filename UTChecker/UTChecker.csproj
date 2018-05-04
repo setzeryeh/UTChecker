@@ -91,6 +91,7 @@
     <Compile Include="UTChecker_TestCaseTable.cs" />
     <Compile Include="UTChecker_TestCaseTable_Define.cs" />
     <Compile Include="UTChecker_CollectFiles.cs" />
+    <Compile Include="UTChecker_TestLogs.cs" />
     <EmbeddedResource Include="LoggerForm.resx">
       <DependentUpon>LoggerForm.cs</DependentUpon>
     </EmbeddedResource>

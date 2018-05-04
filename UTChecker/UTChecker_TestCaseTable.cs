@@ -11,6 +11,12 @@ namespace UTChecker
     public partial class UTChecker
     {
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_excelBook"></param>
+        /// <param name="a_sOutFile"></param>
+        /// <returns></returns>
         public bool WriteSummarySheet(Excel.Workbook a_excelBook, string a_sOutFile)
         {
             string sFuncName = "[WriteSummarySheet]";
@@ -43,7 +49,9 @@ namespace UTChecker
 
                 // Hi-light the error cell.
                 if (0 < g_tTestCaseTable.dNGEntryCount)
+                {
                     excelRange.Cells[TestCaseTableConstants.RowIndex.ERROR_COUNT, dCol].Interior.Color = Constants.Color.RED;
+                }
             }
             catch (System.Exception ex)
             {
@@ -54,6 +62,12 @@ namespace UTChecker
             return true;
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_excelRange"></param>
+        /// <returns></returns>
         public int HighLightIncorrectCells(Excel.Range a_excelRange)
         {
             string sFuncName = "[HighLightIncorrectCells]";
@@ -101,6 +115,7 @@ namespace UTChecker
                     bOK = false;
                     dErrorCount++;
                 }
+
                 else if (tTestCase.bIsRepeated) // test case label is same as others
                 {
                     Logger.Print(sHeader, ErrorMessage.DUPLICATE_TC_LABEL_FOUND + ": \"" + tTestCase.sTCLabelName + "\"");
@@ -119,6 +134,22 @@ namespace UTChecker
                     dErrorCount++;
                 }
 
+                if (tTestCase.eTestMeans == TestMeans.TEST_SCRIPT)
+                {
+                    if (tTestCase.eTestlog.FileName.StartsWith(Constants.StringTokens.NA))
+                    {
+                        Logger.Print(sHeader, ErrorMessage.TESTLOG_IS_MISSING + ": \"" + tTestCase.eTestlog.FileName + "\"");
+                        a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = ErrorMessage.TESTLOG_IS_MISSING;
+
+                        a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG].Interior.Color = Constants.Color.RED;
+                        a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH].Interior.Color = Constants.Color.RED;
+                        bOK = false;
+                        dErrorCount++;
+
+                    }
+                }
+
+
                 // Check test means.
                 if (TestMeans.UNKNOWN == tTestCase.eTestMeans)
                 {
@@ -127,6 +158,7 @@ namespace UTChecker
                     bOK = false;
                     dErrorCount++;
                 }
+
 
                 // Mark the entry as NG.
                 if (!bOK)
@@ -140,7 +172,13 @@ namespace UTChecker
             return dNGCount;
         }
 
-        public bool WriteDetailSheet(Excel.Workbook a_excelBook)
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_excelBook"></param>
+        /// <returns></returns>
+        public bool WriteDetailSheet(Excel.Workbook a_excelBook, ref List<TestLog> a_lsTestLogs)
         {
             string sFuncName = "[WriteDetailSheet]";
 
@@ -157,6 +195,7 @@ namespace UTChecker
                 g_tTestCaseTable.ltItems = g_tTestCaseTable.ltItems.OrderBy(x => x.sSourceFileName).ToList();
 
                 // Write each item to EXCEL table.
+
                 int i;
                 int dRow;
                 for (i = 0, dRow = TestCaseTableConstants.FIRST_ROW; i < g_tTestCaseTable.ltItems.Count; i++, dRow++)
@@ -168,10 +207,52 @@ namespace UTChecker
                     excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TDS_FILE] = g_tTestCaseTable.ltItems[i].sTDSFileName;
                     excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE] = g_tTestCaseTable.ltItems[i].sTCSourceFileName;
                     excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE] = g_tTestCaseTable.ltItems[i].sTCNote;
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = g_tTestCaseTable.ltItems[i].eTestlog.FileName;
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = g_tTestCaseTable.ltItems[i].eTestlog.FullPath;
+
                 }
 
                 // Hi-light incorrect cells.
                 int dNGCount = HighLightIncorrectCells(excelRange);
+
+
+                dRow = excelSheet.UsedRange.Rows.Count + 1; ;
+                int dng = 0;
+
+                foreach (TestLog t in a_lsTestLogs)
+                {
+
+                    if (t.UsedCount == 0)
+                    {
+
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NG_MARKER] = Constants.StringTokens.X;
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.METHOD_NAME] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SOURCE_FILE] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_NAME] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TDS_FILE] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE] = "N/A";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = $"Error:{t.ClassName}.{t.FileName}";
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = t.FullPath;
+
+                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG].Interior.Color = Constants.Color.RED;
+
+                        dRow++;
+
+                        // increment ng count
+                        dng++;
+
+                    }
+
+                }
+
+
+                g_tTestCaseTable.dErrorCount = g_tTestCaseTable.dErrorCount + dng;
+                // update ng count
+                dNGCount = dNGCount + dng;
+
+
 
                 // Write the summary info in the header.
                 dRow = TestCaseTableConstants.COUNT_ROW;
@@ -180,6 +261,7 @@ namespace UTChecker
                 excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.METHOD_NAME] = g_tTestCaseTable.dMethodCount;
                 excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL] = g_tTestCaseTable.dNormalEntryCount;
                 excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_NAME] = g_tTestCaseTable.dTestCaseFuncCount;
+
 
                 // Filter out OK enteirs & show NG entries only (for viewing the NG entries easily).
                 if (0 < dNGCount)
@@ -194,7 +276,9 @@ namespace UTChecker
                         Logger.Print("", e.ToString());
                     }
                 }
+
                 g_tTestCaseTable.dNGEntryCount = dNGCount;
+
             }
             catch (System.Exception ex)
             {
@@ -205,7 +289,16 @@ namespace UTChecker
             return true;
         }
 
-        public bool SaveResults(string a_sTemplateFile, string a_sOutFile)
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sTemplateFile"></param>
+        /// <param name="a_sOutFile"></param>
+        /// <param name="a_lsTestLogs"></param>
+        /// <returns></returns>
+        public bool SaveResults(string a_sTemplateFile, string a_sOutFile, ref List<TestLog> a_lsTestLogs)
         {
             string sFuncName = "[SaveResults]";
 
@@ -241,13 +334,19 @@ namespace UTChecker
                 excelBook = OpenExcelWorkbook(g_excelApp, a_sTemplateFile, true); // read only
 
                 // Write the detail sheet.
-                if (!WriteDetailSheet(excelBook))
+                if (!WriteDetailSheet(excelBook, ref a_lsTestLogs))
+                {
                     return false;
+                }
 
                 // Write the summary sheet. 
                 // Note: This step must be behind the write-details step.
                 if (!WriteSummarySheet(excelBook, a_sOutFile))
+                {
                     return false;
+                }
+
+
 
                 // Save the modified template as the output file.
                 g_excelApp.DisplayAlerts = false; // show no alert while overwritten old file

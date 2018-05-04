@@ -52,8 +52,6 @@ namespace UTChecker
 
                 ERROR_COUNT,
 
-                LOGS_ERROR_COUNT,
-
             }
         }
 

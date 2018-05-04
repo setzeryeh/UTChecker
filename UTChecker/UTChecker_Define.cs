@@ -106,13 +106,22 @@ namespace UTChecker
             public const string ByCodeAnalysis = "By code analysis";
         }
 
-
+        /// <summary>
+        /// The meaing of Test
+        /// </summary>
         public enum TestMeans
         {
+            // Unknow 
             UNKNOWN = 0, // e.g. invalid test case defined in TDS
+
+            // tested by a script (Mockito / PowerMockito)
             TEST_SCRIPT,
+
+            // tested by code analysis (code review)
             CODE_ANALYSIS,
-            NA // empty method, setter/getter
+
+            // no need test, e.q. empty method, setter/getter
+            NA,
         }
 
         public struct TestCaseItem
@@ -127,6 +136,9 @@ namespace UTChecker
             public TestMeans eTestMeans;
             public bool bIsRepeated;        // Only set it as true if the TC is testing the same method.
                                             // That is, it will be false if the TC is for testing multiplt methods.
+
+            public TestLog eTestlog;
+
         };
 
         public struct TestCaseTable
@@ -182,7 +194,7 @@ namespace UTChecker
             public int unknow;
 
             public int count;
-            public int logNumError;
+
             public TestCaseTable testCase;
         }
 
@@ -252,7 +264,10 @@ namespace UTChecker
 
 
         static List<string> g_lsModules = null;
+
+        static List<TestLog> g_lsTestLogs = null;
         static List<string> g_lsTDSFiles = null;
+
         static List<ModuleInfo> g_lsModuleInfo = null;
 
 

@@ -237,7 +237,7 @@ namespace UTChecker
 
 
         /// <summary>
-        /// ReadInfoFromTDSCoverSheet
+        /// Read the information from Coversheet.
         /// </summary>
         /// <param name="a_excelBook"></param>
         /// <param name="a_sSourceFileName"></param>
@@ -355,13 +355,15 @@ namespace UTChecker
         }
 
 
+
         /// <summary>
-        /// ReadDataFromTDSFiles
+        /// 
         /// </summary>
         /// <param name="a_sModuleName"></param>
         /// <param name="a_lsTDSFiles"></param>
+        /// <param name="a_lsTestLogs"></param>
         /// <returns></returns>
-        private bool ReadDataFromTDSFiles(string a_sModuleName, ref List<string> a_lsTDSFiles)
+        private bool ReadDataFromTDSFiles(string a_sModuleName, ref List<string> a_lsTDSFiles, ref List<TestLog> a_lsTestLogs)
         {
             string sFuncName = "[ReadDataFromTDSFiles]";
 
@@ -378,14 +380,30 @@ namespace UTChecker
             // Check the input list.
             if (null == a_lsTDSFiles)
             {
-                Logger.Print(sFuncName, "The input list is null.");
+                Logger.Print(sFuncName, "The input list of TDS is null.");
                 return false;
             }
+
             if (0 == a_lsTDSFiles.Count)
             {
-                Logger.Print(sFuncName, "No TDS file is found.");
+                Logger.Print(sFuncName, "The TDS file(s) aren't found.");
                 return false;
             }
+
+            // Check the input list.
+            if (null == a_lsTestLogs)
+            {
+                Logger.Print(sFuncName, "The input list of Test log is null.");
+                return false;
+            }
+
+            if (0 == a_lsTestLogs.Count)
+            {
+                Logger.Print(sFuncName, "The Test Log file(s) aren't found.");
+                return false;
+            }
+
+
             // Check the EXCEL app.
             if (null == g_excelApp)
             {
@@ -419,7 +437,11 @@ namespace UTChecker
                     // Open the TDS file & get the lookup-table sheet.
                     excelBook = OpenExcelWorkbook(g_excelApp, sFile, true);  // ready only
                     if (null == excelBook)
+                    {
                         continue;
+                    }
+
+
 
                     try
                     {
@@ -430,21 +452,25 @@ namespace UTChecker
                             continue;
                         }
 
+
                         // Determine the source file type.
                         bIsJava = (sSourceFileName.EndsWith("java"));
+
 
                         // Read data form the "TestCase" sheet.
                         sShortTDSFileName = sFile.Replace(g_sTDSPath + a_sModuleName + "\\", "");
                         if (bIsJava)
                         {
-                            ReadTestCasesFromTDSFile_Java(excelBook, ref sShortTDSFileName, ref sSourceFileName);
+                            ReadTestCasesFromTDSFile_Java(excelBook, ref sShortTDSFileName, ref sSourceFileName, ref a_lsTestLogs);
                         }
                         else
                         {
                             ReadTestCasesFromTDSFile_C(excelBook, ref sShortTDSFileName, ref sSourceFileName, ref sMethodName);
                         }
 
+
                         dProceedFileCount++;
+
                     }
                     catch (SystemException ex)
                     {
@@ -466,7 +492,9 @@ namespace UTChecker
 
             // Show the # of proceeded files.
             if (dProceedFileCount != a_lsTDSFiles.Count)
+            {
                 Logger.Print(sFuncName, dProceedFileCount.ToString() + " of " + a_lsTDSFiles.Count + " TDS files proceed.");
+            }
 
             return true;
         }
@@ -565,8 +593,6 @@ namespace UTChecker
 
                 // remove ext filename ".java"
                 className = className.Replace(".java", "");
-                
-
 
                 string testCaseSouce = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
                 string testCaseName = ReadStringFromExcelCell(excelRangeLookupTable.Cells[i, TestCaseTableConstants.ColumnIndex.TC_NAME], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);

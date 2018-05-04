@@ -62,7 +62,7 @@ namespace UTChecker
         /// <param name="a_sTDSFile"></param>
         /// <param name="a_sSourceFileName"></param>
         /// <returns></returns>
-        private int ReadTestCasesFromTDSFile_Java(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName)
+        private int ReadTestCasesFromTDSFile_Java(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName, ref List<TestLog> a_lsTestLogs)
         {
             string sFuncName = "[ReadTestCasesFromTDSFile_Java]";
 
@@ -131,12 +131,17 @@ namespace UTChecker
                     sTCFuncName0 = ReadStringFromExcelCell(excelRange.Cells[i, ++dCol], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
                     sTCNote = ReadStringFromExcelCell(excelRange.Cells[i, ++dCol], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
 
+
+
+
                     // Determine the test means.
                     eTestMeans = DetermineTestMeans(sTCNote);
+
 
                     // --------------------------------------------------
                     // Check & adjust the read data.
                     // --------------------------------------------------
+
                     // Check & modfy method name:
                     if (sMethodName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
@@ -170,8 +175,11 @@ namespace UTChecker
                             dErrorCount++;
                         }
                         else // Form the unique method name: Filename + method name.
+                        {
                             sMethodName = sClassName + ArrangeAndCheckMethodName(sMethodName0);
+                        }
                     }
+
 
                     // Check & modify TC label.
                     if (sTCLabelName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
@@ -238,6 +246,13 @@ namespace UTChecker
                             Logger.Print(sMsgHeader, ErrorMessage.REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC);
                             dErrorCount++;
                         }
+                        if (eTestMeans == TestMeans.TEST_SCRIPT)
+                        {
+                            sMsg = ErrorMessage.MISSING_TESTCASE_FUNCTION_NAME + ": \"" + sTCFuncName0 + "\"";
+                            sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
+                            Logger.Print(sMsgHeader, sMsg);
+                            dErrorCount++;
+                        }
                         else
                         {
                             sTCFuncName = Constants.StringTokens.NA + " (" + sTCNote + ")";
@@ -247,6 +262,7 @@ namespace UTChecker
                     else if (sTCFuncName0.StartsWith(Constants.StringTokens.NA))
                     {
                         sTCFuncName = sTCFuncName0;
+
                     }
                     else if (sTCFuncName0.Contains(" "))
                     {
@@ -261,16 +277,6 @@ namespace UTChecker
                         sTCFuncName = sClassName + sTCFuncName0;
                     }
 
-                    if (eTestMeans == TestMeans.TEST_SCRIPT && sTCFuncName0.StartsWith(Constants.StringTokens.NA))
-                    {
-                        sMsg = ErrorMessage.MISSING_TESTCASE_FUNCTION_NAME + ": \"" + sTCFuncName0 + "\"";
-                        sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
-                        Logger.Print(sMsgHeader, sMsg);
-                        dErrorCount++;
-                    }
-
-
-
 
                     // Determine the test case source file name.
                     if (sTCFuncName0.StartsWith(Constants.StringTokens.NA))
@@ -282,12 +288,49 @@ namespace UTChecker
                         sTCSourceFileName = a_sSourceFileName.Replace(".java", "Test.java");
                     }
 
+                    TestLog eTestLog = new TestLog();
+
+                    if (dErrorCount == 0)
+                    {
+
+                        string testcase = a_sSourceFileName.Replace(".java", "Test.") + sTCFuncName0;
+
+                        int index = 0;
+                        bool bFound = false;
+
+                        // find log
+                        foreach (TestLog t in a_lsTestLogs)
+                        {
+                            if (t.ToString().Equals(testcase))
+                            {
+                                bFound = true;
+                                break;
+                            }
+
+                            index++;
+                        }
+
+                        
+                        try
+                        {
+                            if (bFound)
+                            {
+                                a_lsTestLogs[index].Increment();
+                                eTestLog = a_lsTestLogs[index];
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Print(e.Message);
+                        }
 
 
+                    }
 
 
                     // Record the data read.
                     TestCaseItem tItem = new TestCaseItem();
+
                     tItem.sTDSFileName = a_sTDSFile;
                     tItem.sSourceFileName = a_sSourceFileName;
                     tItem.sMethodName = sMethodName;
@@ -296,6 +339,8 @@ namespace UTChecker
                     tItem.sTCSourceFileName = sTCSourceFileName;
                     tItem.sTCNote = sTCNote;
                     tItem.eTestMeans = eTestMeans;
+                    tItem.eTestlog = eTestLog;
+
                     g_tTestCaseTable.ltItems.Add(tItem);
                 }
             }

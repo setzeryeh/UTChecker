@@ -15,6 +15,8 @@ namespace UTChecker
     {
         private MainForm g_MF = null;
 
+        public TimeSpan TimeSpan { get; private set; }
+
         /// <summary>
         /// Constructor for UTChecker
         /// </summary>
@@ -117,9 +119,6 @@ namespace UTChecker
 
             string sOutputFile = "";
 
-            string sTestLogPath = "";
-            string sListFileForLog = "";
-
             int dNormalEntryCount = 0;
             int dErrorEntryCount = 0;
 
@@ -143,17 +142,14 @@ namespace UTChecker
             int dUnknow = 0;
 
 
-            Logger.ClearAll();
-            
-            Logger.Print("Run UT Checker.", "", Logger.PrintOption.Logger);
+            DateTime startTime = DateTime.Now;
+            Logger.Print("Run UT checker" + startTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
 
+            // update logger
+            Logger.ClearAll();
 
             // initial all variables
             InitializeVariable();
-
-            // report progress
-            Logger.UpdateProgress(10);
-
             
            
             if (!CheckSetting())
@@ -170,8 +166,8 @@ namespace UTChecker
                  
             }
 
+            // update logger
             Logger.Print("Initialize variables done.");
-            Logger.UpdateProgress(20);
 
 
             // Read the module list, where comment/empty lines will be ignored.
@@ -187,17 +183,17 @@ namespace UTChecker
             List<string> nameInSummary = ReadAllModuleNamesFromExcel(g_sSummaryReport);
 
 
+            // update logger
             Logger.Print("Read List file done.");
-            Logger.UpdateProgress(30);
 
 
             // prepare summary report
             string sSummaryReportPath = PrepareSummaryReport(g_sSummaryReport, g_sOutputPath);
 
 
-
-            int diff = 40 / g_lsModules.Count;
-            int value = 40;
+            // update 
+            int diff = 80 / g_lsModules.Count;
+            int value = 10;
             Logger.UpdateProgress(value);
 
 
@@ -277,6 +273,8 @@ namespace UTChecker
                    
                     try
                     {
+                        // update logger
+                        Logger.Print("Prepare a output report.");
 
                         // Prepare a dummy output report in case the flow is aborted due to a failure.
                         if (!PrepareDummayOutputReport(sOutputFile))
@@ -285,7 +283,15 @@ namespace UTChecker
                             continue;
                         }
 
-               
+
+
+                        g_lsTestLogs = CollectTestLogs(sItem, g_sTestLogPath);
+
+                        // update logger
+                        Logger.Print($"{g_lsTestLogs.Count} log(s) are collected.", Logger.PrintOption.Both);
+         
+
+
                         // Search and collect all TDS files.
                         // * Input: Start path
                         // * Output: A list containing the TDS file names.
@@ -295,8 +301,12 @@ namespace UTChecker
                             continue;
                         }
 
+                        Logger.Print($"{g_lsTDSFiles.Count} TDS are collected.", Logger.PrintOption.Both);
+
+
+
                         // Parse the function & TC info from each TDS file.
-                        if (!ReadDataFromTDSFiles(sItem, ref g_lsTDSFiles))
+                        if (!ReadDataFromTDSFiles(sItem, ref g_lsTDSFiles, ref g_lsTestLogs))
                         {
                             bIsErrorEverOccurred = true;
                             continue;
@@ -304,42 +314,19 @@ namespace UTChecker
 
 
 
+
                         // Count designs and methods.
                         CountAndMarkResults();
 
 
-                        Logger.Print("Writing result to report.");
 
+                        Logger.Print("Write the result to report.");
 
                         // Write the results to as an overall lookup table.
-                        if (!SaveResults(g_sTemplateFile, sOutputFile))
+                        if (!SaveResults(g_sTemplateFile, sOutputFile, ref g_lsTestLogs))
                         {
                             bIsErrorEverOccurred = true;
                         }
-
-
-
-
-
-                        Logger.Print("Search and Compare test logs");
-
-                        List<string> testLogs = SearchPowerMockitoTestLogs(sItem, g_sTestLogPath);
-
-                        Logger.Print($"{testLogs.Count} log(s) are collected.", Logger.PrintOption.Both);
-
-
-                        int logNumError = CompareTDSandTestLogs(sItem, sOutputFile, testLogs);
-
-                        if (logNumError > 0 || logNumError <= -1)
-                        {
-                            bIsErrorEverOccurred = true;
-                        }
-
-
-                        Logger.Print($"Compare TDS and TestLog done. {testLogs.Count}");
-
-
-
 
 
                         //
@@ -367,7 +354,7 @@ namespace UTChecker
                         item.count = g_tTestCaseTable.ltItems.Count;
                         item.testCase = g_tTestCaseTable;
 
-                        item.logNumError = logNumError;
+                        //item.logNumError = logNumError;
 
                         // push item into a List
                         g_lsModuleInfo.Add(item);
@@ -474,7 +461,7 @@ namespace UTChecker
                     }
 
                     // update progress
-                    if (value < 80)
+                    if (value < 90)
                     {
                         value = value + diff;
                         Logger.UpdateProgress(value);
@@ -482,7 +469,8 @@ namespace UTChecker
 
                 } // End of foreach
 
-                Logger.UpdateProgress(80);
+                // update logger
+                Logger.UpdateProgress(90);
 
             }
             finally
@@ -529,7 +517,14 @@ namespace UTChecker
                 }
             }
 
-            Logger.Print("All Jobs Done! " + DateTime.Now.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
+            DateTime finishTime = DateTime.Now;
+
+            // update looger
+            Logger.Print("All Jobs Done! " + finishTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
+
+            TimeSpan timeSpan = finishTime.Subtract(startTime);
+            Logger.Print($"Elapsed Time: {TimeSpan.ToString()}");
+
             Logger.UpdateProgress(100);
 
             return 0;
@@ -1039,7 +1034,9 @@ namespace UTChecker
                 {
                     if (ltNonRepeatedItems[i].sSourceFileName.StartsWith(Constants.StringTokens.NA) ||
                         ltNonRepeatedItems[i].sSourceFileName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
+                    {
                         ltNonRepeatedItems.RemoveAt(i);
+                    }
                 }
 
                 // Record the number of non-repeated source files.
@@ -1056,7 +1053,9 @@ namespace UTChecker
                 {
                     if (ltNonRepeatedItems[i].sMethodName.StartsWith(Constants.StringTokens.NA) ||
                         ltNonRepeatedItems[i].sMethodName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
+                    {
                         ltNonRepeatedItems.RemoveAt(i);
+                    }
                 }
 
                 // Record the number of non-repeated source files.
@@ -1073,7 +1072,9 @@ namespace UTChecker
                 {
                     if (ltNonRepeatedItems[i].sTCFuncName.StartsWith(Constants.StringTokens.NA) ||
                         ltNonRepeatedItems[i].sTCFuncName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
+                    {
                         ltNonRepeatedItems.RemoveAt(i);
+                    }
                 }
 
                 // Record the counted result.
@@ -1129,13 +1130,21 @@ namespace UTChecker
 
                         // Count the test means.
                         if (TestMeans.NA == tTestCase.eTestMeans)
+                        {
                             dDoneByNACount++;
+                        }
                         else if (TestMeans.TEST_SCRIPT == tTestCase.eTestMeans)
+                        {
                             dDoneByTestScriptCount++;
+                        }
                         else if (TestMeans.CODE_ANALYSIS == tTestCase.eTestMeans)
+                        {
                             dDoneByCodeAnalysisCount++;
+                        }
                         else
+                        {
                             dDoneByOthersCount++;
+                        }
                     }
                 }
 
@@ -1152,12 +1161,16 @@ namespace UTChecker
                 // Double check the sum of the counts.
                 int dSum = g_tTestCaseTable.dNormalEntryCount + g_tTestCaseTable.dRepeatedEntryCount + g_tTestCaseTable.dErrorEntryCount;
                 if (dSum != g_tTestCaseTable.ltItems.Count)
+                {
                     Logger.Print("     (Error:", dSum.ToString() + " != " + g_tTestCaseTable.ltItems.Count.ToString() + ")");
+                }
 
                 dSum = g_tTestCaseTable.dByNACount + g_tTestCaseTable.dByTestScriptCount +
                         g_tTestCaseTable.dByCodeAnalysisCount + g_tTestCaseTable.dByUnknownCount;
                 if (dSum != g_tTestCaseTable.dNormalEntryCount)
+                {
                     Logger.Print("     (Error:", dSum.ToString() + " != " + g_tTestCaseTable.dNormalEntryCount.ToString() + ")");
+                }
             }
             catch (SystemException e)
             {
