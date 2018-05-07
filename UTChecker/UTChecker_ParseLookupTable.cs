@@ -48,9 +48,13 @@ namespace UTChecker
             else
             {
                 if (a_sOrgMethodName.Contains(" ")) // method name cannot contain any space
+                {
                     return "";
+                }
                 else
+                {
                     return a_sOrgMethodName;
+                }
             }
         }
 
@@ -444,7 +448,7 @@ namespace UTChecker
         /// <param name="a_sSourceFileName"></param>
         /// <param name="a_sMethodName"></param>
         /// <returns></returns>
-        private int ReadTestCasesFromTDSFile_C(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName, ref string a_sMethodName)
+        private int ReadTestCasesFromTDSFile_C(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName, ref string a_sMethodName, ref List<TestLog> a_lsTestLogs)
         {
             const string sFuncName = "[ReadTestCasesFromTDSFile_C]";
 
@@ -496,7 +500,9 @@ namespace UTChecker
                         }
                     }
                     if (bFound)
+                    {
                         break;
+                    }
                 }
 
 
@@ -558,7 +564,9 @@ namespace UTChecker
 
                     // skip empty and covered item
                     if (("" == sTCLabelName) || sTCLabelName.StartsWith("Covered by"))
+                    {
                         continue;
+                    }
 
                     sMsgHeader = Constants.StringTokens.MSG_BULLET + " Cell(" + dRow.ToString() + "," + i.ToString() + "):";
 
@@ -589,8 +597,54 @@ namespace UTChecker
                         continue;
                     }
 
+
+
+                    // new a objec TestLog for init.
+                    TestLog eTestLog = new TestLog();
+
+                    if (dErrorCount == 0)
+                    {
+
+                        string testcase = a_sMethodName + "." + sTCLabelName;
+
+                        int index = 0;
+                        bool isFound = false;
+
+                        // find log
+                        foreach (TestLog t in a_lsTestLogs)
+                        {
+                            if (t.ToString().Equals(testcase))
+                            {
+                                isFound = true;
+                                break;
+                            }
+
+                            index++;
+                        }
+
+
+                        try
+                        {
+                            if (isFound)
+                            {
+                                a_lsTestLogs[index].Increment();
+                                eTestLog = a_lsTestLogs[index];
+                                Logger.Print($"Found Test Case {eTestLog.ToString()}", Logger.PrintOption.File);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Logger.Print(e.Message, Logger.PrintOption.Both);
+                        }
+
+
+                    }
+
+
+
                     // Record the data read.
                     TestCaseItem tItem = new TestCaseItem();
+
                     tItem.sTDSFileName = a_sTDSFile;
                     tItem.sSourceFileName = a_sSourceFileName;
                     tItem.sMethodName = a_sMethodName;
@@ -600,6 +654,8 @@ namespace UTChecker
                     tItem.sTCFuncName = Constants.StringTokens.NA;
                     tItem.sTCNote = Constants.StringTokens.NA;
                     tItem.eTestMeans = TestMeans.TEST_SCRIPT;
+                    tItem.eTestlog = eTestLog;
+
                     g_tTestCaseTable.ltItems.Add(tItem);
 
                     sPrevLabel = sTCLabelName;

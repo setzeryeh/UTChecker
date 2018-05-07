@@ -28,7 +28,7 @@ namespace UTChecker
             /// <summary>
             /// Prefix file name for Report.
             /// </summary>
-            public const string REPORT_PREFIX = "Method_TC_Lookup_Table_of_";
+            public const string REPORT_PREFIX = "UT_CHECK_";
 
 
             public const string SHEET_NAME = "LookupTable";

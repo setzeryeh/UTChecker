@@ -33,6 +33,10 @@ namespace UTChecker
             public string FullPath { get; private set; }
 
 
+            private const string C_VECTORCAST = "vectorcast";
+            private bool IsJava = false;
+
+
             /// <summary>
             /// The Count of Used
             /// </summary>
@@ -61,12 +65,30 @@ namespace UTChecker
                     this.FileName = Path.GetFileName(path);
 
                     // get the full path of log file
-                    string p = Path.GetDirectoryName(path);
+                    string subDir = Path.GetDirectoryName(path);
 
                     // get the class from previous direcotry.
-                    string parent = Directory.GetParent(p).FullName;
-                    this.ClassName = p.Substring(parent.Length + 1); // with '\' plus 1
+                    string parentDir = Directory.GetParent(subDir).FullName;
 
+
+                    if (subDir.ToLower().EndsWith(C_VECTORCAST))
+                    {
+                        string grandParent = Directory.GetParent(parentDir).FullName;
+
+
+                        this.ClassName = parentDir.Substring(grandParent.Length + 1); // with '\' plus 1
+
+                        this.IsJava = false;
+
+                    }
+                    else
+                    {
+                        this.ClassName = subDir.Substring(parentDir.Length + 1); // with '\' plus 1
+
+                        this.IsJava = true;
+                    }
+
+                    // set us
                     this.UsedCount = 0;
                 }
                 else
@@ -88,8 +110,14 @@ namespace UTChecker
             /// <returns></returns>
             public int CompareTo(TestLog other)
             {
-                string c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
-                string c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                string c1 = "N/A";
+                string c2 = "A/N";
+
+                if (IsJava)
+                {
+                    c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
+                    c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                }
 
                 return c1.CompareTo(c2);
 
@@ -109,8 +137,15 @@ namespace UTChecker
                     return false;
                 }
 
-                string c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
-                string c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                string c1 = "N/A";
+                string c2 = "A/N";
+
+                if (IsJava)
+                {
+                    c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
+                    c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                }
+
 
                 if (c1.CompareTo(obj) == 0)
                 {
@@ -137,7 +172,14 @@ namespace UTChecker
             /// <returns></returns>
             public override string ToString()
             {
-                return this.ClassName + "." + this.FileName.Replace(".txt", "");
+                if (IsJava)
+                {
+                    return this.ClassName + "." + this.FileName.Replace(".txt", "");
+                }
+                else
+                {
+                    return this.FileName.Replace(".txt", ""); ;
+                }
             }
 
 
@@ -148,9 +190,6 @@ namespace UTChecker
             {
                 this.UsedCount = this.UsedCount + 1;
             }
-
-           
-
 
         }
 

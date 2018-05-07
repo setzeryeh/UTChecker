@@ -38,7 +38,9 @@ namespace UTChecker
             // Save the list of found files to the specifed file.
             if ("" != a_sOutFile)
             {
+#if DEBUG
                 WriteStringListToTextFile(ref a_lsOutList, a_sOutFile);
+#endif
             }
 
             Logger.Print(sFuncName, a_lsOutList.Count.ToString() + " TDS file(s) collected.");
@@ -195,7 +197,9 @@ namespace UTChecker
             // Save the list of found files to the specifed file.
             if ("" != sTempListFileName)
             {
-                //WriteTestLogsListToTextFile(ref a_lsOutList, sTempListFileName);
+#if DEBUG
+                WriteTestLogsListToTextFile(ref a_lsOutList, sTempListFileName);
+#endif
             }
 
             //List<string> logs = processLogs(a_lsOutList, sTempListFileName);
@@ -281,9 +285,15 @@ namespace UTChecker
                 return true;
             }
 
+            if (File.Exists(a_sOutFile))
+            {
+                File.Delete(a_sOutFile);
+            }
+
             // Write the error log to the output file.
             try
             {
+
                 using (StreamWriter sw = File.AppendText(a_sOutFile))
                 {
                     foreach (TestLog sLine in a_lsInList)

@@ -141,17 +141,18 @@ namespace UTChecker
             int dPureUIfunctioncalls = 0;
             int dUnknow = 0;
 
-
-            DateTime startTime = DateTime.Now;
-            Logger.Print("Run UT checker" + startTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
-
             // update logger
             Logger.ClearAll();
+
+            // record the time at Start.
+            DateTime startTime = DateTime.Now;
+            Logger.Print("Run UT checker. " + startTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
+
 
             // initial all variables
             InitializeVariable();
             
-           
+            // check all of paths.
             if (!CheckSetting())
             {
                 if (this.RunUTCheckerBy == UTChecker.RunBy.CommandLine)
@@ -517,15 +518,18 @@ namespace UTChecker
                 }
             }
 
+            // record the time at Finish
             DateTime finishTime = DateTime.Now;
 
             // update looger
             Logger.Print("All Jobs Done! " + finishTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
 
-            TimeSpan timeSpan = finishTime.Subtract(startTime);
-            Logger.Print($"Elapsed Time: {TimeSpan.ToString()}");
+            // print Elapsed Time
+            TimeSpan interval = finishTime - startTime;
+            Logger.Print($"Elapsed Time: {interval.Hours}:{interval.Minutes}:{interval.Seconds}", Logger.PrintOption.Both);
 
             Logger.UpdateProgress(100);
+
 
             return 0;
         }
@@ -724,11 +728,6 @@ namespace UTChecker
                 Logger.Print(sFuncName, "Cannot find the TDS path: " + g_sTDSPath);
                 return false;
             }
-            if (!Directory.Exists(g_sOutputPath))
-            {
-                Logger.Print(sFuncName, "Cannot find the output path: " + g_sOutputPath);
-                return false;
-            }
 
             if (!Directory.Exists(g_sTestLogPath))
             {
@@ -736,6 +735,13 @@ namespace UTChecker
                 return false;
             }
 
+            if (!Directory.Exists(g_sOutputPath))
+            {
+                Directory.CreateDirectory(g_sOutputPath);
+
+                Logger.Print(sFuncName, "Create directory for output : " + g_sOutputPath);
+                return false;
+            }
 
             // Update the input/output files, if needs.
             if (!g_sModuleListFile.Contains("\\"))

@@ -283,7 +283,9 @@ namespace UTChecker
                     }
                 }
                 if (bFound)
+                {
                     break;
+                }
             }
 
             if (bFound)
@@ -465,7 +467,7 @@ namespace UTChecker
                         }
                         else
                         {
-                            ReadTestCasesFromTDSFile_C(excelBook, ref sShortTDSFileName, ref sSourceFileName, ref sMethodName);
+                            ReadTestCasesFromTDSFile_C(excelBook, ref sShortTDSFileName, ref sSourceFileName, ref sMethodName, ref a_lsTestLogs);
                         }
 
 

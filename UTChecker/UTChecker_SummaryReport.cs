@@ -33,12 +33,12 @@ namespace UTChecker
 
 
                 //Remove old output file.
-                if (File.Exists(dest))
+                if (!File.Exists(dest))
                 {
-                    File.Delete(dest);
+                   File.Copy(templatePath, dest);
                 }
 
-                File.Copy(g_sSummaryReport, dest);
+
             }
             catch (Exception ex)
             {
@@ -142,12 +142,14 @@ namespace UTChecker
         /// <returns></returns>
         public int GetModuleId(string a_sModuleName, List<string> lsModuleNames)
         {
-            a_sModuleName = a_sModuleName.Replace("_", " ");
+            string moduleName = a_sModuleName.Replace("_", " ");
 
             for (int i = 0; i < lsModuleNames.Count; i++)
             {
-                if (a_sModuleName == lsModuleNames[i])
+                if (moduleName == lsModuleNames[i])
+                {
                     return i + 1;
+                }
             }
 
             return -1;
@@ -215,7 +217,7 @@ namespace UTChecker
                 //excelRange.Cells[int, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
                 int dRow = SummaryReport.HEADER_HEIGHT + index;
                 // name
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
+                //excelRange.Cells[dRow, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
@@ -250,6 +252,7 @@ namespace UTChecker
 
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
 
+                // set The color of background for this cell to indicate that this is a Error.
                 if (item.testCase.dErrorCount > 0)
                 {
                     excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
