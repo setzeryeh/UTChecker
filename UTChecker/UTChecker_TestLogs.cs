@@ -10,6 +10,7 @@ namespace UTChecker
     public partial class UTChecker
     {
 
+
         /// <summary>
         /// 
         /// </summary>
@@ -19,22 +20,77 @@ namespace UTChecker
             /// <summary>
             /// 
             /// </summary>
+            public enum TestResult
+            {
+                // Test Log is not available.
+                NOT_AVAILABLE = 0,
+
+                // Test Log is Passed
+                PASSED,
+
+                // Test Log is Failed
+                FAILED,
+
+                // Test Log is Invalid.
+                INVALID,
+            }
+
+
+            /// <summary>
+            /// The test log are created by which platform.
+            /// </summary>
+            private enum PlateformType
+            {
+                /// <summary>
+                /// Created by Mockito
+                /// </summary>
+                Mockito = 1,
+
+                /// <summary>
+                /// Created by PowerMockito
+                /// </summary>
+                PowerMockito = 2,
+
+                /// <summary>
+                /// Created VectorCAst
+                /// </summary>
+                VectorCast = 4,
+
+                /// <summary>
+                /// Does not belong to any platform.
+                /// </summary>
+                None = 8,
+            }
+
+
+
+            /// <summary>
+            /// The Target class that is to be tested.
+            /// </summary>
             public string ClassName { get; private set; }
 
             /// <summary>
-            /// 
+            /// The full name of Test Log. (with Ext-FileName .TxT)
             /// </summary>
             public string FileName { get; private set; }
 
 
             /// <summary>
-            /// 
+            /// The full path of Test Log.
             /// </summary>
             public string FullPath { get; private set; }
 
 
-            private const string C_VECTORCAST = "vectorcast";
-            private bool IsJava = false;
+            /// <summary>
+            /// 
+            /// </summary>
+            private PlateformType Type = PlateformType.None;
+
+
+            private const string DIR_VECTORCAST = "vectorcast";
+            private const string DIR_POWERMOCKITO = "PowerMockito";
+
+            
 
 
             /// <summary>
@@ -42,13 +98,20 @@ namespace UTChecker
             /// </summary>
             public int UsedCount { get; private set; }
 
+
+            /// <summary>
+            /// Constructor for test log
+            /// </summary>
             public TestLog()
             {
                 this.ClassName = "N/A";
                 this.FileName = "N/A";
                 this.FullPath = "N/A";
+                this.Type = PlateformType.None;
                 this.UsedCount = 0;
             }
+
+
 
             /// <summary>
             /// Constructor for test log
@@ -71,21 +134,29 @@ namespace UTChecker
                     string parentDir = Directory.GetParent(subDir).FullName;
 
 
-                    if (subDir.ToLower().EndsWith(C_VECTORCAST))
+                    if (subDir.ToLower().EndsWith(DIR_VECTORCAST))
                     {
                         string grandParent = Directory.GetParent(parentDir).FullName;
 
 
                         this.ClassName = parentDir.Substring(grandParent.Length + 1); // with '\' plus 1
 
-                        this.IsJava = false;
+                        this.Type = PlateformType.VectorCast;
 
                     }
-                    else
+                    else 
                     {
                         this.ClassName = subDir.Substring(parentDir.Length + 1); // with '\' plus 1
 
-                        this.IsJava = true;
+                        if (subDir.Contains(DIR_POWERMOCKITO))
+                        {
+                            this.Type = PlateformType.PowerMockito;
+                        }
+                        else
+                        {
+                            this.Type = PlateformType.Mockito;
+                        }
+    
                     }
 
                     // set us
@@ -93,11 +164,13 @@ namespace UTChecker
                 }
                 else
                 {
+
                     this.ClassName = "N/A";
                     this.FileName = "N/A";
                     this.FullPath = "N/A";
-
+                    this.Type = PlateformType.None;
                     this.UsedCount = 0;
+
                 }
  
             }
@@ -113,10 +186,17 @@ namespace UTChecker
                 string c1 = "N/A";
                 string c2 = "A/N";
 
-                if (IsJava)
+
+                if (this.Type == PlateformType.Mockito || 
+                    this.Type == PlateformType.PowerMockito)
                 {
                     c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
                     c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                }
+                else if (this.Type == PlateformType.VectorCast)
+                {
+                    c1 = this.FileName.Replace(".txt", "");
+                    c2 = other.FileName.Replace(".txt", "");
                 }
 
                 return c1.CompareTo(c2);
@@ -132,18 +212,29 @@ namespace UTChecker
             {
                 TestLog other = obj as TestLog;
 
-                if (other != null)
+                string c1 = "N/A";
+                string c2 = "A/N";
+
+                if (other == null)
                 {
                     return false;
                 }
 
-                string c1 = "N/A";
-                string c2 = "A/N";
 
-                if (IsJava)
+                if (this.Type == PlateformType.Mockito ||
+                    this.Type == PlateformType.PowerMockito)
                 {
                     c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
                     c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
+                }
+                else if (this.Type == PlateformType.VectorCast)
+                {
+                    c1 = this.FileName.Replace(".txt", "");
+                    c2 = other.FileName.Replace(".txt", "");
+                }
+                else
+                {
+                   
                 }
 
 
@@ -166,19 +257,32 @@ namespace UTChecker
                 return base.GetHashCode();
             }
 
+
+
+
+
             /// <summary>
             /// 
             /// </summary>
             /// <returns></returns>
             public override string ToString()
             {
-                if (IsJava)
+
+                if (this.Type == PlateformType.Mockito ||
+                    this.Type == PlateformType.PowerMockito)
                 {
+                    // testXXXTCY.TXT
                     return this.ClassName + "." + this.FileName.Replace(".txt", "");
+
+                }
+                else if (this.Type == PlateformType.VectorCast)
+                {
+                    // XXX.TCYYY.TXT
+                    return this.FileName.Replace(".txt", "");
                 }
                 else
                 {
-                    return this.FileName.Replace(".txt", ""); ;
+                    return "";
                 }
             }
 
@@ -188,13 +292,297 @@ namespace UTChecker
             /// </summary>
             public void Increment()
             {
-                this.UsedCount = this.UsedCount + 1;
+                if (this.Type != PlateformType.None)
+                {
+                    this.UsedCount = this.UsedCount + 1;
+                }
             }
 
+
+
+
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public TestResult GetTestResult()
+            {
+                //string sFuncName = "[GetTestResult]";
+                TestResult eTestResult = TestResult.NOT_AVAILABLE;
+
+                
+
+                // Check the existence of current log file.
+                if (!File.Exists(this.FullPath))
+                {
+                    //Log(sFuncName, "Cannot find " + a_sLogFile);
+                    return TestResult.NOT_AVAILABLE;
+                }
+
+                
+                switch (this.Type)
+                {
+
+                    case PlateformType.Mockito:
+                        eTestResult = ParseMockitoTestResult();
+                        break;
+
+                    case PlateformType.PowerMockito:
+                        eTestResult = ParsePowerMockitoTestResult();
+                        break;
+
+                    case PlateformType.VectorCast:
+                        eTestResult = ParseVectorTestResult();
+                        break;
+
+                    default:
+                        eTestResult = TestResult.NOT_AVAILABLE;
+                        break;
+                }
+
+
+
+                // If passed and failed cases cannot be found, it is an error case.
+                return eTestResult;
+                
+            }
+
+
+            /// <summary>
+            /// 
+            /// </summary>
+            /// <returns></returns>
+            public TestResult GetTestResultByAnalysisRecord(string path)
+            {
+                return TestResult.NOT_AVAILABLE;
+            }
+
+
+
+            /// <summary>
+            /// Parse test log that created by Mockito
+            /// </summary>
+            /// <returns></returns>
+            private TestResult ParseMockitoTestResult()
+            {
+                string sFuncName = "[ParseMockitoTestResult]";
+
+                TestResult eTestResult = TestResult.NOT_AVAILABLE;
+
+
+                if (this.Type == PlateformType.Mockito)
+                {
+
+                    string[] sTokens = {"): passed:",
+                                        "): failed:"};
+
+                    try
+                    {
+
+                        // read all from file.
+                        string[] sLines = File.ReadAllLines(FullPath);
+
+                        // remove ext file name.
+                        string testCaseString = this.FileName.Replace(".txt", "");
+
+
+                        //// confirm
+                        //if (!sLines[0].Contains(testCaseString) &&
+                        //    !sLines[sLines.Length - 1].Contains(testCaseString))
+                        //{
+                        //    return TestResult.INVALID;
+                        //}
+
+
+                        // Search for the "passed" token from last 5 lines of the file.
+                        for (int i = sLines.Length - 1; i >= 0; i--)
+                        {
+                            if (sLines[i].Contains(sTokens[0]))
+                            {
+                                eTestResult = TestResult.PASSED;
+                                break;
+                            }
+                            else if (sLines[i].Contains(sTokens[1]))
+                            {
+                                eTestResult = TestResult.FAILED;
+                                break;
+                            }
+                            else
+                            {
+                                eTestResult = TestResult.NOT_AVAILABLE;
+                            }
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Print(sFuncName, ex.Message);
+                        eTestResult = TestResult.NOT_AVAILABLE;
+                    }
+                }
+                else
+                {
+                    eTestResult = TestResult.NOT_AVAILABLE;
+                }
+
+
+                return eTestResult;
+
+            }
+
+
+
+            /// <summary>
+            /// Parse test log that created by PowerMockito
+            /// </summary>
+            /// <returns></returns>
+            private TestResult ParsePowerMockitoTestResult()
+            {
+                string sFuncName = "[ParseMockitoTestResult]";
+
+                TestResult eTestResult = TestResult.NOT_AVAILABLE;
+
+
+                if (this.Type == PlateformType.PowerMockito)
+                {
+
+                    string[] sTokens = {"Test Result: Passed",
+                                        "Test Result: Failed"};
+
+                    try
+                    {
+
+                        // read all from file.
+                        string[] sLines = File.ReadAllLines(FullPath);
+
+                        // remove ext file name.
+                        string testCaseString = this.FileName.Replace(".txt", "");
+
+
+                        // confirm
+                        if (!sLines[0].Contains(testCaseString) &&
+                            !sLines[sLines.Length - 1].Contains(testCaseString))
+                        {
+                            return TestResult.INVALID;
+                        }
+
+
+                        // Search for the "passed" token from last 5 lines of the file.
+                        for (int i = sLines.Length - 1; i >= 0; i--)
+                        {
+                            if (sLines[i].Contains(sTokens[0]))
+                            {
+                                eTestResult = TestResult.PASSED;
+                                break;
+                            }
+                            else if (sLines[i].Contains(sTokens[1]))
+                            {
+                                eTestResult = TestResult.FAILED;
+                                break;
+                            }
+                            else
+                            {
+                                eTestResult = TestResult.NOT_AVAILABLE;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Print(sFuncName, ex.Message);
+                        eTestResult = TestResult.NOT_AVAILABLE;
+
+                    }
+                }
+                else
+                {
+                    eTestResult = TestResult.NOT_AVAILABLE;
+                }
+
+                return eTestResult;
+
+            }
+
+
+
+
+
+            /// <summary>
+            /// Parse test log that created by VectorCast
+            /// </summary>
+            /// <returns></returns>
+            private TestResult ParseVectorTestResult()
+            {
+                string sFuncName = "[ParseVectorTestResult]";
+
+                TestResult eTestResult = TestResult.NOT_AVAILABLE;
+
+
+                if (this.Type == PlateformType.VectorCast)
+                {
+
+                    const string RESULT_LINE_TOKEN = "Test Status";
+                    const string PASS_TOKEN = "PASS";
+                    const string FAIL_TOKEN = "FAIL";
+
+                    try
+                    {
+
+                        string line;
+
+                        using (System.IO.StreamReader file = new System.IO.StreamReader(FullPath))
+                        {
+                        
+                            while ((line = file.ReadLine()) != null)
+                            {
+                                line = line.Trim();
+
+                                if (line.StartsWith(RESULT_LINE_TOKEN))
+                                {
+                                    string result = line.Remove(0, RESULT_LINE_TOKEN.Length).Trim();
+
+                                    if (result.Equals(PASS_TOKEN))
+                                    {
+                                        eTestResult = TestResult.PASSED;
+                                    }
+                                    else if (result.Equals(FAIL_TOKEN))
+                                    {
+                                        eTestResult = TestResult.FAILED;
+                                    }
+                                    else
+                                    {
+                                        eTestResult = TestResult.INVALID;
+                                    }
+
+                                    break;
+                                }
+                                else
+                                {
+                                    eTestResult = TestResult.NOT_AVAILABLE;
+                                }
+                            }
+
+                        }
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Print(sFuncName, ex.Message);
+                        eTestResult = TestResult.NOT_AVAILABLE;
+                    }
+                }
+                else
+                {
+                    eTestResult = TestResult.NOT_AVAILABLE;
+                }
+
+
+                return eTestResult;
+
+            }
+
+
+
         }
-
-
-
-
     }
 }

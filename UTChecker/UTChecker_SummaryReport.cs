@@ -21,6 +21,8 @@ namespace UTChecker
         /// <returns></returns>
         public string PrepareSummaryReport(string templatePath, string outputPath)
         {
+            string sFuncName = "[PrepareSummaryReport]";
+
             string dest = null;
 
             try
@@ -42,7 +44,7 @@ namespace UTChecker
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error occurred when prepare the summary report\r\n" + ex.Message);
+                Logger.Print(sFuncName, "Error occurred when prepare the summary report. " + ex.Message);
                 return null;
             }
 
@@ -121,11 +123,8 @@ namespace UTChecker
             }
             finally
             {
-                // Close the EXCEL table.
-                if (null != excelBook)
-                {
-                    excelBook.Close();
-                }
+
+                excelBook.Close(false, Type.Missing, Type.Missing);
             }
 
             return lsModuleNames;
@@ -183,7 +182,7 @@ namespace UTChecker
         //
         // Write the information of ut for each module into Summary report.
         //
-        public bool WriteSummaryReport(string a_sExcelFile, ModuleInfo item, int index)
+        public bool WriteSummaryReport(string a_sExcelFile, TestCaseTable item, int index)
         {
             string sFuncName = "[WriteSummaryReport]";
 
@@ -200,7 +199,7 @@ namespace UTChecker
             // Check the readiness of the EXCEL app.
             if (null == g_excelApp)
             {
-                Logger.Print(sFuncName, "EXCEL app is null.");
+                Logger.Print(sFuncName, ErrorMessage.EXCEL_APP_IS_NULL);
                 return false;
             }
 
@@ -219,43 +218,51 @@ namespace UTChecker
                 // name
                 //excelRange.Cells[dRow, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.testCase.dSourceFileCount;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.METHOD_COUNT] = item.testCase.dMethodCount;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.testCase.dTestCaseFuncCount;
-
-                // no test needed
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.GETTER_SETTER] = item.gettersetter;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.EMPTY] = item.emptymethod;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.INTERFACE] = item.interfacemethod;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ABSTRACE] = item.abstractmethod;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NATIVE] = item.nativemethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.SOURCE_COUNT] = item.dSourceFileCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.METHOD_COUNT] = item.dMethodCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TESTCASE_COUNT] = item.dTestCaseFuncCount;
 
                 // test script
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.MOCKITO] = item.mockito;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.POWERMOCKIT] = item.powermockito;
-
-                // by code analysis
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.codeanalysis;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_CALL] = item.purefunctioncalls;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.pureUIfunctioncalls;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.MOCKITO] = item.stTestTypeStatistic.mockito;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.POWERMOCKIT] = item.stTestTypeStatistic.powermockito;
 
                 // unknow
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.UNKNOW] = item.unknow;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.VECTORCAST] = item.stTestTypeStatistic.vectorcast;
+
+                // no test needed
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.GETTER_SETTER] = item.stTestTypeStatistic.gettersetter;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.EMPTY] = item.stTestTypeStatistic.emptymethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.INTERFACE] = item.stTestTypeStatistic.interfacemethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ABSTRACE] = item.stTestTypeStatistic.abstractmethod;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NATIVE] = item.stTestTypeStatistic.nativemethod;
 
 
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.count;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.testCase.dNormalEntryCount;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.testCase.dRepeatedEntryCount;
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.testCase.dErrorEntryCount;
+                // by code analysis
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.BY_CODE_ANALYSIS] = item.stTestTypeStatistic.codeanalysis;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_CALL] = item.stTestTypeStatistic.purefunctioncalls;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.stTestTypeStatistic.pureUIfunctioncalls;
 
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT] = item.testCase.dNGEntryCount;
 
-                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.testCase.dErrorCount;
+
+                // unknow
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.UNKNOW] = item.stTestTypeStatistic.unknow;
+
+
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TOTAL_TESTCASE_COUNT] = item.ltItems.Count;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.dNormalEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.dRepeatedEntryCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.dErrorEntryCount;
+
+
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.dErrorCount;
+
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT] = item.dNGEntryCount;
+
 
                 // set The color of background for this cell to indicate that this is a Error.
-                if (item.testCase.dErrorCount > 0)
+                if (item.dNGEntryCount > 0)
                 {
-                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT].Interior.Color = Constants.Color.RED;
+                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT].Interior.Color = Constants.Color.RED;
                 }
 
 
@@ -270,7 +277,7 @@ namespace UTChecker
             }
             finally
             {
-                excelBook.Close();
+                excelBook.Close(false, Type.Missing, Type.Missing);
             }
 
             return true;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -8,6 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
+using Word = Microsoft.Office.Interop.Word;
 
 namespace UTChecker
 {
@@ -25,10 +27,12 @@ namespace UTChecker
 
             g_MF = mf;
 
+            // create a variable for record the path setting
             g_FilePathSetting = new EnvrionmentSetting();
 
             // init a task of backgroundworker for UTChecker
             InitializeBackgroundWorkerForUTChecker();
+
         }
 
         #region BackgroundWorker for UT Checker
@@ -55,6 +59,14 @@ namespace UTChecker
             g_bwUTChecker.RunWorkerAsync();
         }
 
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public void Stop()
+        {
+            g_bwUTChecker.CancelAsync();
+        }
 
         /// <summary>
         /// An event which triggers the RunTDSParser
@@ -95,7 +107,12 @@ namespace UTChecker
             }
             else
             {
-                MessageBox.Show("Done");
+                string msg = "Done";
+                if ((int)e.Result == -1)
+                {
+                    msg = "Error";
+                }
+                MessageBox.Show(msg);
                 Logger.ClearProgress();
             }
         }
@@ -112,7 +129,7 @@ namespace UTChecker
         /// <returns></returns>
         public int RunUTChecker()
         {
-            string sFuncName = "[TDS_Parser]";
+            string sFuncName = "[RunUTChecker]";
 
             string sTDSPath = "";
             string sListFileForTDS = "";
@@ -128,32 +145,53 @@ namespace UTChecker
             int dErrorCount = 0;
             int dNGEntryCount = 0;
 
+            int dTestLogIssueCount = 0;
+            int dSUTSIssueCount = 0;
 
             int dByMockito = 0;
             int dByPowerMockito = 0;
-            int dBycodeanalysis = 0;
+            int dVectorcast = 0;
+
             int dGetterSetter = 0;
             int dEmptymethod = 0;
             int dAbstractmethod = 0;
             int dInterfacemethod = 0;
             int dNativemethod = 0;
+
+            int dBycodeanalysis = 0;
             int dPurefunctioncalls = 0;
             int dPureUIfunctioncalls = 0;
+
             int dUnknow = 0;
 
-            // update logger
+            CultureInfo cultureEN = new CultureInfo("en-US");
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
             Logger.ClearAll();
 
             // record the time at Start.
-            DateTime startTime = DateTime.Now;
-            Logger.Print("Run UT checker. " + startTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
+            DateTime l_startTime = DateTime.Now;
+            Logger.Print(sFuncName, l_startTime.ToString(cultureEN), Logger.PrintOption.Both);
 
 
             // initial all variables
             InitializeVariable();
+
+
+
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
+            Logger.UpdateProgress(2);
             
+
+
+
             // check all of paths.
-            if (!CheckSetting())
+            if (!CheckEnvironmentSetting())
             {
                 if (this.RunUTCheckerBy == UTChecker.RunBy.CommandLine)
                 {
@@ -162,13 +200,20 @@ namespace UTChecker
                 }
                 else
                 {
-                    
+                    Logger.Print(sFuncName, "Path Error", Logger.PrintOption.Both);
+                    this.Stop();
+                    return -1;
                 }
                  
             }
 
-            // update logger
-            Logger.Print("Initialize variables done.");
+
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
+            Logger.UpdateProgress(4);
+
 
 
             // Read the module list, where comment/empty lines will be ignored.
@@ -176,29 +221,76 @@ namespace UTChecker
             {
                 Logger.Print(sFuncName, "Read DD module list failed.", Logger.PrintOption.Both);
 
-                return 0;
+                return -1;
             }
 
 
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
+            Logger.UpdateProgress(6);
+
+
+
+
+
             // Read the name of modules from Summary Rereport.
-            List<string> nameInSummary = ReadAllModuleNamesFromExcel(g_sSummaryReport);
+            List<string> a_lsModuleNameInSmmary = ReadAllModuleNamesFromExcel(g_sSummaryReport);
+            if (a_lsModuleNameInSmmary == null || a_lsModuleNameInSmmary.Count == 0)
+            {
+                Logger.Print(sFuncName, "The modules of name can't be found in Summary Template.", Logger.PrintOption.Both);
+
+                return -1;
+            }
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
+            Logger.UpdateProgress(8);
 
 
-            // update logger
-            Logger.Print("Read List file done.");
 
 
             // prepare summary report
             string sSummaryReportPath = PrepareSummaryReport(g_sSummaryReport, g_sOutputPath);
 
 
-            // update 
+            Logger.Print($"Total {g_lsModules.Count} module(s) would be checked.", Logger.PrintOption.Both);
+
+
+
+
+            //Logger.Print($"", Logger.PrintOption.Both);
+
+
+            //string doc_vector = @"D:\SVN\Traceability\05_Detailed_Design\2_SUTS\NUGEN Software Unit Test Specification Document of 10417 Communication.doc";
+
+            //string doc_basal = @"D:\SVN\Traceability\05_Detailed_Design\2_SUTS\NUGEN Software Unit Test Specification Document of Basal Delivery.doc";
+
+
+            //testWord(pp);
+
+
+            //testWord2(doc_basal, "BasalUtil");
+
+            //return -1;
+
+            //Logger.Print($"", Logger.PrintOption.Both);
+
+            //testWord2(pp, "BgmCommunication");
+
+            //Logger.Print($"", Logger.PrintOption.Both);
+
+            //testWord2(pp, "BgmSecificCommandFactory");
+
+
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
             int diff = 80 / g_lsModules.Count;
             int value = 10;
-            Logger.UpdateProgress(value);
-
-
-            Logger.Print($"Total {g_lsModules.Count} module(s) would be checked.", Logger.PrintOption.Both);
 
 
             try
@@ -207,6 +299,13 @@ namespace UTChecker
                 foreach (string sItem in g_lsModules)
                 {
 
+                    // -------------------------------------------------------------------------------
+                    // update logger / progress
+                    // -------------------------------------------------------------------------------
+                    Logger.UpdateProgress(value);
+                    value = value < 90 ? (value + (diff / 2)) : 90;
+
+
                     // for _TDS.list
                     sTDSPath = g_sTDSPath + sItem + "\\";
                     sListFileForTDS = sTDSPath + "_TDS.list";
@@ -214,11 +313,8 @@ namespace UTChecker
                     // for report
                     sOutputFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".xlsx";
 
-
-
                     // for Error log
                     g_sErrorLogFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".log";
-
                     Logger.FileName = g_sErrorLogFile;
 
                     // Remove old log file.
@@ -247,35 +343,44 @@ namespace UTChecker
                     g_tTestCaseTable.dByCodeAnalysisCount = 0;
                     g_tTestCaseTable.dByUnknownCount = 0;
 
+                    g_tTestCaseTable.dTestLogIssueCount = 0;
+                    g_tTestCaseTable.dSUTSIssueCount = 0;
+
                     g_tTestCaseTable.ltItems.Clear();
 
                     // clear all
-                    gn_ByMockito = 0;
-                    gn_ByPowerMockito = 0;
-                    gn_Bycodeanalysis = 0;
-                    gn_GetterSetter = 0;
-                    gn_Emptymethod = 0;
-                    gn_Abstractmethod = 0;
-                    gn_Interfacemethod = 0;
-                    gn_Nativemethod = 0;
-                    gn_Purefunctioncalls = 0;
-                    gn_PureUIfunctioncalls = 0;
-                    gn_Unknow = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.mockito = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.powermockito = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.vectorcast = 0;
+
+
+                    g_tTestCaseTable.stTestTypeStatistic.gettersetter = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.emptymethod = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.abstractmethod = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.interfacemethod = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.nativemethod = 0;
+
+                    g_tTestCaseTable.stTestTypeStatistic.codeanalysis = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.purefunctioncalls = 0;
+                    g_tTestCaseTable.stTestTypeStatistic.pureUIfunctioncalls = 0;
+
+
+                    g_tTestCaseTable.stTestTypeStatistic.unknow = 0;
+
 
                     #endregion
 
 
                     // Write the spliter for reading the error log file easily.
                     // (This section must be located behind the remove-error-file section. Otherwise the message will be written to the previous error log file.)
-                    Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
-                    Logger.Print("", sItem, Logger.PrintOption.Both);
-                    Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
+                    DateTime _startTime = DateTime.Now;
+                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
+                    Logger.Print(sItem, Logger.PrintOption.Both);
+                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
 
                    
                     try
                     {
-                        // update logger
-                        Logger.Print("Prepare a output report.");
 
                         // Prepare a dummy output report in case the flow is aborted due to a failure.
                         if (!PrepareDummayOutputReport(sOutputFile))
@@ -283,36 +388,58 @@ namespace UTChecker
                             bIsErrorEverOccurred = true;
                             continue;
                         }
+     
 
-
-
-                        g_lsTestLogs = CollectTestLogs(sItem, g_sTestLogPath);
-
-                        // update logger
-                        Logger.Print($"{g_lsTestLogs.Count} log(s) are collected.", Logger.PrintOption.Both);
-         
-
-
+                        //
                         // Search and collect all TDS files.
-                        // * Input: Start path
-                        // * Output: A list containing the TDS file names.
-                        g_lsTDSFiles = SearchTDSFiles(sTDSPath, sListFileForTDS);
+                        //
+                        g_lsTDSFiles = CollectTDSFiles(sTDSPath, sListFileForTDS);
                         if ((null == g_lsTDSFiles) || (0 == g_lsTDSFiles.Count))
                         {
+                            Logger.Print($"TDS file(s) not found.", Logger.PrintOption.Both);
                             continue;
                         }
 
-                        Logger.Print($"{g_lsTDSFiles.Count} TDS are collected.", Logger.PrintOption.Both);
+
+                        
+                        //
+                        // Search Test Logs
+                        //
+                        g_lsTestLogs = CollectTestLogs(sItem, g_sTestLogPath);
+                        if ((null == g_lsTestLogs) || (0 == g_lsTestLogs.Count))
+                        {
+                            Logger.Print($"Test log file(s) not found.", Logger.PrintOption.Both);
+                        }
+
+
+                        //
+                        // Search SUTS
+                        //
+                        g_sSUTSDocumentPath = SearchSUTSDocumentPath(sItem, g_sSUTSPath);
+                        if ("" == g_sSUTSDocumentPath)
+                        {
+                            Logger.Print($"SUTS not found.", Logger.PrintOption.Both);
+
+                        }
+
+
+                        // -------------------------------------------------------------------------------
+                        // update logger / progress
+                        // -------------------------------------------------------------------------------
+                        Logger.UpdateProgress(value);
+                        value = value < 90 ? (value + (diff / 2)) : 90;
 
 
 
+                        //
                         // Parse the function & TC info from each TDS file.
-                        if (!ReadDataFromTDSFiles(sItem, ref g_lsTDSFiles, ref g_lsTestLogs))
+                        //
+                        if (!ReadDataFromTDSFiles(sItem, ref g_lsTDSFiles, ref g_lsTestLogs, g_sSUTSDocumentPath))
                         {
                             bIsErrorEverOccurred = true;
+                            Logger.Print($"Parse TDS file failed, Skipped.", Logger.PrintOption.Both);
                             continue;
                         }
-
 
 
 
@@ -320,8 +447,12 @@ namespace UTChecker
                         CountAndMarkResults();
 
 
-
+                        // -------------------------------------------------------------------------------
+                        // update logger / progress
+                        // -------------------------------------------------------------------------------
                         Logger.Print("Write the result to report.");
+
+
 
                         // Write the results to as an overall lookup table.
                         if (!SaveResults(g_sTemplateFile, sOutputFile, ref g_lsTestLogs))
@@ -331,44 +462,15 @@ namespace UTChecker
 
 
                         //
-                        // add iteminfo
+                        // write summary report
                         //
-                        ModuleInfo item = new ModuleInfo();
-
-                        item.name = sItem;
-
-                        item.gettersetter = gn_GetterSetter;
-                        item.emptymethod = gn_Emptymethod;
-                        item.abstractmethod = gn_Abstractmethod;
-                        item.interfacemethod = gn_Interfacemethod;
-                        item.nativemethod = gn_Nativemethod;
-
-                        item.mockito = gn_ByMockito;
-                        item.powermockito = gn_ByPowerMockito;
-
-                        item.codeanalysis = gn_Bycodeanalysis;
-                        item.purefunctioncalls = gn_Purefunctioncalls;
-                        item.pureUIfunctioncalls = gn_PureUIfunctioncalls;
-
-                        item.unknow = gn_Unknow;
-
-                        item.count = g_tTestCaseTable.ltItems.Count;
-                        item.testCase = g_tTestCaseTable;
-
-                        //item.logNumError = logNumError;
-
-                        // push item into a List
-                        g_lsModuleInfo.Add(item);
-
-
                         Logger.Print("Writing result to Summary Reports.");
 
-                        int index = GetModuleId(sItem, nameInSummary);
-
-                        // write summary report
-                        if (!WriteSummaryReport(sSummaryReportPath, item, index))
+                        int index = GetModuleId(sItem, a_lsModuleNameInSmmary);
+                        if (!WriteSummaryReport(sSummaryReportPath, g_tTestCaseTable, index))
                         {
-
+                            Logger.Print(sFuncName, "Error occurred when writeing data into Summary report.", Logger.PrintOption.Both);
+                            continue;
                         }
 
                     }
@@ -376,6 +478,12 @@ namespace UTChecker
                     {
 
                         #region Show the result when current module has checked.
+
+ 
+                        Logger.Print("", "---------------------------------------------------------------");
+                        Logger.Print("", $" {sItem} Module Summary:");
+                        Logger.Print("", "---------------------------------------------------------------");
+
 
                         // Show the # based on TDS entries. 
                         Logger.Print("  Total # of test cases defined in TDS:", g_tTestCaseTable.ltItems.Count.ToString());
@@ -392,28 +500,30 @@ namespace UTChecker
                         Logger.Print("", "");
 
                         // Show the # based on test means. 
-                        Logger.Print("  Test means summary:", "");
-                        Logger.Print("   - No test needed:         ", String.Format("{0,4}", g_tTestCaseTable.dByNACount.ToString()));
-                        Logger.Print("     Getter/Setter:          ", String.Format("{0,4}", gn_GetterSetter));
-                        Logger.Print("     Empty method:           ", String.Format("{0,4}", gn_Emptymethod));
-                        Logger.Print("     Abstract method:        ", String.Format("{0,4}", gn_Abstractmethod));
-                        Logger.Print("     Interface method:       ", String.Format("{0,4}", gn_Interfacemethod));
-                        Logger.Print("     Native method:          ", String.Format("{0,4}", gn_Nativemethod));
+                        Logger.Print("   - Tested by test scripts: ", String.Format("{0,4}", g_tTestCaseTable.dByTestScriptCount.ToString()));
+                        Logger.Print("     By Mockito:             ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.mockito));
+                        Logger.Print("     By PowerMockito:        ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.powermockito));
+                        Logger.Print("     By VectorCast:          ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.vectorcast));
                         Logger.Print("", "");
 
-                        Logger.Print("   - Tested by test scripts: ", String.Format("{0,4}", g_tTestCaseTable.dByTestScriptCount.ToString()));
-                        Logger.Print("     By Mockito:             ", String.Format("{0,4}", gn_ByMockito));
-                        Logger.Print("     By PowerMockito:        ", String.Format("{0,4}", gn_ByPowerMockito));
+                        Logger.Print("  Test means summary:", "");
+                        Logger.Print("   - No test needed:         ", String.Format("{0,4}", g_tTestCaseTable.dByNACount.ToString()));
+                        Logger.Print("     Getter/Setter:          ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.gettersetter));
+                        Logger.Print("     Empty method:           ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.emptymethod));
+                        Logger.Print("     Abstract method:        ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.abstractmethod));
+                        Logger.Print("     Interface method:       ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.interfacemethod));
+                        Logger.Print("     Native method:          ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.nativemethod));
                         Logger.Print("", "");
 
                         Logger.Print("   - Tested by code analysis:", String.Format("{0,4}", g_tTestCaseTable.dByCodeAnalysisCount.ToString()));
-                        Logger.Print("     By code analysis:       ", String.Format("{0,4}", gn_Bycodeanalysis));
-                        Logger.Print("     Pure function calls:    ", String.Format("{0,4}", gn_Purefunctioncalls));
-                        Logger.Print("     Pure UI function calls: ", String.Format("{0,4}", gn_PureUIfunctioncalls));
+                        Logger.Print("     By code analysis:       ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.codeanalysis));
+                        Logger.Print("     Pure function calls:    ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.purefunctioncalls));
+                        Logger.Print("     Pure UI function calls: ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.pureUIfunctioncalls));
                         Logger.Print("", "");
 
+
                         Logger.Print("   - Unknow items:           ", String.Format("{0,4}", g_tTestCaseTable.dByUnknownCount.ToString()));
-                        Logger.Print("     Uknow:                  ", String.Format("{0,4}", gn_Unknow));
+                        Logger.Print("     Uknow:                  ", String.Format("{0,4}", g_tTestCaseTable.stTestTypeStatistic.unknow));
                         Logger.Print("", "");
 
 
@@ -424,13 +534,11 @@ namespace UTChecker
                             Logger.Print("     (Error:", dSum.ToString() + " != " + g_tTestCaseTable.dNormalEntryCount.ToString() + ")");
                         }
 
+                        Logger.Print("  Total # of Test Log Issues:", g_tTestCaseTable.dTestLogIssueCount.ToString());
+                        Logger.Print("  Total # of SUTS issues:", g_tTestCaseTable.dSUTSIssueCount.ToString());
 
-
-                        // Show the overall NG entry #.
-                        if (0 < g_tTestCaseTable.dNGEntryCount)
-                        {
-                            Logger.Print("  Total # of NG entry(s) found:", g_tTestCaseTable.dNGEntryCount.ToString());
-                        }
+                        Logger.Print("  Total # of NG entry(s) found:", g_tTestCaseTable.dNGEntryCount.ToString());
+                        
 
                         #endregion
 
@@ -445,38 +553,49 @@ namespace UTChecker
                         dErrorCount = dErrorCount + g_tTestCaseTable.dErrorCount;
                         dNGEntryCount = dNGEntryCount + g_tTestCaseTable.dNGEntryCount;
 
-                        dByMockito = dByMockito + gn_ByMockito;
-                        dByPowerMockito = dByPowerMockito + gn_ByPowerMockito;
-                        dBycodeanalysis = dBycodeanalysis + gn_Bycodeanalysis;
-                        dGetterSetter = dGetterSetter + gn_GetterSetter;
-                        dEmptymethod = dEmptymethod + gn_Emptymethod;
-                        dAbstractmethod = dAbstractmethod + gn_Abstractmethod;
-                        dInterfacemethod = dInterfacemethod + gn_Interfacemethod;
-                        dNativemethod = dNativemethod + gn_Nativemethod;
-                        dPurefunctioncalls = dPurefunctioncalls + gn_Purefunctioncalls;
-                        dPureUIfunctioncalls = dPureUIfunctioncalls + gn_PureUIfunctioncalls;
-                        dUnknow = dUnknow + gn_Unknow;
+                        dTestLogIssueCount = dTestLogIssueCount + g_tTestCaseTable.dTestLogIssueCount;
+                        dSUTSIssueCount = dSUTSIssueCount + g_tTestCaseTable.dSUTSIssueCount;
+
+                        dByMockito = dByMockito + g_tTestCaseTable.stTestTypeStatistic.mockito;
+                        dByPowerMockito = dByPowerMockito + g_tTestCaseTable.stTestTypeStatistic.powermockito;
+                        dVectorcast = dVectorcast + g_tTestCaseTable.stTestTypeStatistic.vectorcast;
+
+                        dGetterSetter = dGetterSetter + g_tTestCaseTable.stTestTypeStatistic.gettersetter;
+                        dEmptymethod = dEmptymethod + g_tTestCaseTable.stTestTypeStatistic.emptymethod;
+                        dAbstractmethod = dAbstractmethod + g_tTestCaseTable.stTestTypeStatistic.abstractmethod;
+                        dInterfacemethod = dInterfacemethod + g_tTestCaseTable.stTestTypeStatistic.interfacemethod;
+                        dNativemethod = dNativemethod + g_tTestCaseTable.stTestTypeStatistic.nativemethod;
+
+                        dBycodeanalysis = dBycodeanalysis + g_tTestCaseTable.stTestTypeStatistic.codeanalysis;
+                        dPurefunctioncalls = dPurefunctioncalls + g_tTestCaseTable.stTestTypeStatistic.purefunctioncalls;
+                        dPureUIfunctioncalls = dPureUIfunctioncalls + g_tTestCaseTable.stTestTypeStatistic.pureUIfunctioncalls;
+                        dUnknow = dUnknow + g_tTestCaseTable.stTestTypeStatistic.unknow;
 
                         #endregion
 
                     }
 
-                    // update progress
-                    if (value < 90)
-                    {
-                        value = value + diff;
-                        Logger.UpdateProgress(value);
-                    }
+
+                    // record elapsed time for each module.
+                    DateTime _finishTime = DateTime.Now;
+                    TimeSpan intv = _finishTime - _startTime;
+                    Logger.Print($"Elapsed Time: {intv.Hours}:{intv.Minutes}:{intv.Seconds}", Logger.PrintOption.Both);
+
+
 
                 } // End of foreach
 
-                // update logger
+                // -------------------------------------------------------------------------------
+                // update logger / progress
+                // -------------------------------------------------------------------------------
                 Logger.UpdateProgress(90);
 
             }
             finally
             {
 
+
+                #region Show Overall Summary Info
 
                 // Show overall summary info.
                 Logger.Print("", "---------------------------------------------------------------", Logger.PrintOption.Both);
@@ -487,22 +606,36 @@ namespace UTChecker
                 Logger.Print(" Total # of non-repeated test cases collected: " + dNormalEntryCount.ToString(), "", Logger.PrintOption.Both);
                 Logger.Print(" Total # of non-repeated test case functions collected: " + dTestCaseFuncCount.ToString(), "", Logger.PrintOption.Both);
                 Logger.Print(" Total # of errors found: " + dErrorCount.ToString(), "", Logger.PrintOption.Both);
-                Logger.Print(" Total # of NG entries found: " + dNGEntryCount.ToString(), "", Logger.PrintOption.Both);
+
+                Logger.Print(" Total # of Test Log Issues found:  " + dTestLogIssueCount.ToString(), "", Logger.PrintOption.Both);
+                Logger.Print(" Total # of SUTS Issues found:      " + dSUTSIssueCount.ToString(), "", Logger.PrintOption.Both);
+                Logger.Print(" Total # of NG entries found:       " + dNGEntryCount.ToString(), "", Logger.PrintOption.Both);
+
+
+                Logger.Print(" Total # of By Mockito:             ", String.Format("{0,4}", dByMockito), Logger.PrintOption.Both);
+                Logger.Print(" Total # of By PowerMockito:        ", String.Format("{0,4}", dByPowerMockito), Logger.PrintOption.Both);
+                Logger.Print(" Total # of By VectorCast:          ", String.Format("{0,4}", dVectorcast), Logger.PrintOption.Both);
+
+
                 Logger.Print(" Total # of Getter/Setter:          ", String.Format("{0,4}", dGetterSetter), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Empty method:           ", String.Format("{0,4}", dEmptymethod), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Abstract method:        ", String.Format("{0,4}", dAbstractmethod), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Interface method:       ", String.Format("{0,4}", dInterfacemethod), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Native method:          ", String.Format("{0,4}", dNativemethod), Logger.PrintOption.Both);
-                Logger.Print(" Total # of By Mockito:             ", String.Format("{0,4}", dByMockito), Logger.PrintOption.Both);
-                Logger.Print(" Total # of By PowerMockito:        ", String.Format("{0,4}", dByPowerMockito), Logger.PrintOption.Both);
                 Logger.Print(" Total # of By code analysis:       ", String.Format("{0,4}", dBycodeanalysis), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Pure function calls:    ", String.Format("{0,4}", dPurefunctioncalls), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Pure UI function calls: ", String.Format("{0,4}", dPureUIfunctioncalls), Logger.PrintOption.Both);
                 Logger.Print(" Total # of Uknow:                  ", String.Format("{0,4}", dUnknow), Logger.PrintOption.Both);
+                Logger.Print("", "");
+
+
+                #endregion
 
 
                 // release Office.
                 ReleaseOfficeApps();
+
+
 
                 // Show ending message.
                 if (bIsErrorEverOccurred)
@@ -512,22 +645,27 @@ namespace UTChecker
                 else
                 {
 
-                    Logger.Print("Update path setting.");
-                    WriteSetting();
+                    Logger.Print("Update path setting to " + UTCheckerSetting.FileName);
+                    WriteEnvironmentSetting();
 
                 }
             }
 
             // record the time at Finish
-            DateTime finishTime = DateTime.Now;
+            DateTime l_finishTime = DateTime.Now;
 
             // update looger
-            Logger.Print("All Jobs Done! " + finishTime.ToString(new CultureInfo("en-US")), Logger.PrintOption.Both);
+            Logger.Print("All Jobs Done! " + l_finishTime.ToString(cultureEN), Logger.PrintOption.Both);
 
             // print Elapsed Time
-            TimeSpan interval = finishTime - startTime;
+            TimeSpan interval = l_finishTime - l_startTime;
             Logger.Print($"Elapsed Time: {interval.Hours}:{interval.Minutes}:{interval.Seconds}", Logger.PrintOption.Both);
 
+
+
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
             Logger.UpdateProgress(100);
 
 
@@ -543,27 +681,51 @@ namespace UTChecker
         /// <returns></returns>
         private bool InitializeVariable()
         {
-            string sFuncName = "[Init]";
+            string sFuncName = "[InitializeVariable]";
+
+            
+            try
+            {
+                foreach (Process proc in Process.GetProcessesByName("EXCEL"))
+                {
+                    proc.Kill();
+                }
+
+                foreach (Process proc in Process.GetProcessesByName("WINWORD"))
+                {
+                    proc.Kill();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
+            
+
+
 
             // init the list of modules
             g_lsModules = new List<string>();
 
-            // get the handler for excel
+            // get the handler for excel application
             g_excelApp = new Excel.Application
             {
                 DisplayAlerts = false
             };
 
-            // Initialize ...
+            // get the handler for word application
+            g_wordApp = new Word.Application();
+            g_wordApp.DisplayAlerts = Microsoft.Office.Interop.Word.WdAlertLevel.wdAlertsNone;
+
+
+            // Initialize a list for TDS files
             g_lsTDSFiles = new List<string>();
 
             // New the list for storing the data read.
             g_tTestCaseTable.ltItems = new List<TestCaseItem>();
 
-            g_lsModuleInfo = new List<ModuleInfo>();
-            g_lsModuleInfo.Clear();
 
-            Logger.Print(sFuncName, "Done.");
+            Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
 
             return true;
         }
@@ -576,9 +738,9 @@ namespace UTChecker
         /// </summary>
         /// <param name="commandline"></param>
         /// <returns></returns>
-        public bool UpdateSetting()
+        public bool UpdateEnvironmentSetting()
         {
-            string sFuncName = "[UpdatePathSetting]";
+            string sFuncName = "[UpdateEnvironmentSetting]";
 
             EnvrionmentSetting ps = new EnvrionmentSetting();
 
@@ -599,6 +761,7 @@ namespace UTChecker
                 ps.reportTemplate = args[4];
                 ps.summaryTemplate = args[5];
                 ps.testlogPath = args[6];
+                ps.sutsPath = args[7];
 
                 g_FilePathSetting = ps;
                 UpdatePathEvent(this, null);
@@ -656,6 +819,25 @@ namespace UTChecker
                                 {
                                     ps.testlogPath = setting[2];
                                 }
+                                else if (setting[1].Equals(UTCheckerSetting.ReferenceListsPath))
+                                {
+                                    ps.referenceListsPath = setting[2];
+                                }
+                                else if (setting[1].Equals(UTCheckerSetting.SUTS_PATH))
+                                {
+                                    ps.sutsPath = setting[2];
+                                }
+                                else if (setting[1].Equals(UTCheckerSetting.SURR_PATH))
+                                {
+                                    ps.sutrrPath = setting[2];
+                                }
+
+
+
+                                else
+                                {
+
+                                }
 
                             }
                         }
@@ -678,8 +860,6 @@ namespace UTChecker
             }
 
 
-            Logger.Print(sFuncName, "Done");
-
             return bDone;
         }
 
@@ -689,10 +869,9 @@ namespace UTChecker
         /// Check the setting of enviroment before starting to check the UT 
         /// </summary>
         /// <returns></returns>
-        private bool CheckSetting()
+        private bool CheckEnvironmentSetting()
         {
-
-            string sFuncName = "[CheckSetting]";
+            string sFuncName = "[CheckEnvironmentSetting]";
 
             EnvrionmentSetting fp = g_MF.GetPath();
 
@@ -704,6 +883,10 @@ namespace UTChecker
             g_sTemplateFile = fp.reportTemplate; ; ;    // template file
             g_sSummaryReport = fp.summaryTemplate;      // summary templat
             g_sTestLogPath = fp.testlogPath;
+            g_sReferenceListsPath = fp.referenceListsPath; // reference lists path
+            g_sSUTSPath = fp.sutsPath;
+            g_sSUTRRPath = fp.sutrrPath;
+
 
             // Ensure each path is ended with a '\\'.
             if (!g_sTDSPath.EndsWith("\\"))
@@ -729,12 +912,38 @@ namespace UTChecker
                 return false;
             }
 
+            // check the path of test logs.
             if (!Directory.Exists(g_sTestLogPath))
             {
                 Logger.Print(sFuncName, "Cannot find the output path: " + g_sTestLogPath);
                 return false;
             }
 
+            //// check the path of reference
+            //if (!Directory.Exists(g_sReferenceListsPath))
+            //{
+            //    Logger.Print(sFuncName, "Cannot find the reference lists path: " + g_sReferenceListsPath);
+            //    return false;
+            //}
+
+
+            // check the path of SUTS
+            if (!Directory.Exists(g_sSUTSPath))
+            {
+                Logger.Print(sFuncName, "Cannot find the SUTS path: " + g_sSUTSPath);
+                return false;
+            }
+
+            //// check the path of SUTRR
+            //if (!Directory.Exists(g_sSUTRRPath))
+            //{
+            //    Logger.Print(sFuncName, "Cannot find the SUTRR path: " + g_sSUTRRPath);
+            //    return false;
+            //}
+
+
+
+            // check the path of output
             if (!Directory.Exists(g_sOutputPath))
             {
                 Directory.CreateDirectory(g_sOutputPath);
@@ -742,6 +951,9 @@ namespace UTChecker
                 Logger.Print(sFuncName, "Create directory for output : " + g_sOutputPath);
                 return false;
             }
+
+
+
 
             // Update the input/output files, if needs.
             if (!g_sModuleListFile.Contains("\\"))
@@ -771,6 +983,8 @@ namespace UTChecker
                return false;
             }
 
+            Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
+
             return true;
 
         }
@@ -781,44 +995,59 @@ namespace UTChecker
         /// Write the setting of environment to file.
         /// </summary>
         /// <returns></returns>
-        private bool WriteSetting()
+        private bool WriteEnvironmentSetting()
         {
+            //string sFuncName = "[WriteEnvironmentSetting]";
 
-            if (File.Exists(UTCheckerSetting.FileName))
+            if (this.RunUTCheckerBy == RunBy.CommandLine)
             {
-                File.Delete(UTCheckerSetting.FileName);
+                return false;
+            }
+            else
+            {
+
+                if (File.Exists(UTCheckerSetting.FileName))
+                {
+                    File.Delete(UTCheckerSetting.FileName);
+                }
+
+                using (System.IO.StreamWriter file = new System.IO.StreamWriter(UTCheckerSetting.FileName))
+                {
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.ListFile + "=" +
+                                    g_FilePathSetting.listFile);
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.TDSPath + "=" +
+                                    g_FilePathSetting.tdsPath);
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.OutputPath + "=" +
+                                    g_FilePathSetting.outputPath);
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.ReportTemplate + "=" +
+                                    g_FilePathSetting.reportTemplate);
+
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.SummaryTemplate + "=" +
+                                    g_FilePathSetting.summaryTemplate);
+
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.TestLogPath + "=" +
+                                    g_FilePathSetting.testlogPath);
+
+                    file.WriteLine(UTCheckerSetting.Prefix + " " +
+                                    UTCheckerSetting.SUTS_PATH + "=" +
+                                    g_FilePathSetting.sutsPath);
+
+                }
+
             }
 
-            using (System.IO.StreamWriter file = new System.IO.StreamWriter(UTCheckerSetting.FileName))
-            {
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.ListFile + "=" +
-                                g_FilePathSetting.listFile);
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.TDSPath + "=" +
-                                g_FilePathSetting.tdsPath);
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.OutputPath + "=" +
-                                g_FilePathSetting.outputPath);
-
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.ReportTemplate + "=" +
-                                g_FilePathSetting.reportTemplate);
-
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.SummaryTemplate + "=" +
-                                g_FilePathSetting.summaryTemplate);
-
-
-                file.WriteLine(UTCheckerSetting.Prefix + " " +
-                                UTCheckerSetting.TestLogPath + "=" +
-                                g_FilePathSetting.testlogPath);
-            }
 
             return true;
         }
@@ -849,6 +1078,8 @@ namespace UTChecker
             {
                 a_lsOutList = new List<string>();
             }
+
+
             try
             {
                 // Clear the buffer first.
@@ -908,7 +1139,7 @@ namespace UTChecker
                 return false;
             }
 
-            Logger.Print(sFuncName, "Done.");
+            Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
 
             return true;
         }
@@ -949,6 +1180,8 @@ namespace UTChecker
                 Logger.Print(sFuncName, "Exception: " + e.ToString());
                 return false;
             }
+
+            Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
 
             return true;
         }
@@ -1025,6 +1258,20 @@ namespace UTChecker
             int dDoneByCodeAnalysisCount = 0;
             int dDoneByTestScriptCount = 0;
             int dDoneByOthersCount = 0;
+
+            // fo statistic
+            int dByMockito = 0;
+            int dByPowerMockito = 0;
+            int dGetterSetter = 0;
+            int dEmptymethod = 0;
+            int dAbstractmethod = 0;
+            int dInterfacemethod = 0;
+            int dNativemethod = 0;
+            int dBycodeanalysis = 0;
+            int dPurefunctioncalls = 0;
+            int dPureUIfunctioncalls = 0;
+            int dVectorCast = 0;
+            int dUnknow = 0;
 
 
             try
@@ -1151,10 +1398,45 @@ namespace UTChecker
                         {
                             dDoneByOthersCount++;
                         }
+
+
+
+                        switch (tTestCase.eType)
+                        {
+                            case TestType.ByMockito:        dByMockito++;       break;
+                            case TestType.ByPowerMockito:   dByPowerMockito++;  break;
+                            case TestType.ByVectorCast:     dVectorCast++;      break;
+
+
+                            case TestType.GetterSetter:     dGetterSetter++;    break;
+                            case TestType.Empty:            dEmptymethod++;     break;
+                            case TestType.Abstract:         dAbstractmethod++;  break;
+                            case TestType.Interface:        dInterfacemethod++; break;
+                            case TestType.Native:           dNativemethod++;    break;
+
+
+                            case TestType.ByCodeAnalysis:
+                                dBycodeanalysis++;
+                                break;
+
+                            case TestType.PureFunctionCalls:
+                                dPurefunctioncalls++;
+                                break;
+
+                            case TestType.PureUIFunctionCalls:
+                                dPureUIfunctioncalls++;
+                                break;
+
+
+                            default:
+                                dUnknow++;
+                                break;
+                        }
+
                     }
                 }
 
-                // Record the number of non-repeated test cases.
+                // record the statistic of each test type.
                 g_tTestCaseTable.dNormalEntryCount = dNormalEntryCount;
                 g_tTestCaseTable.dRepeatedEntryCount = dRepeatedEntryCount;
                 g_tTestCaseTable.dErrorEntryCount = dErrorEntryCount;
@@ -1163,6 +1445,24 @@ namespace UTChecker
                 g_tTestCaseTable.dByTestScriptCount = dDoneByTestScriptCount;
                 g_tTestCaseTable.dByCodeAnalysisCount = dDoneByCodeAnalysisCount;
                 g_tTestCaseTable.dByUnknownCount = dDoneByOthersCount;
+
+                g_tTestCaseTable.stTestTypeStatistic.mockito = dByMockito;
+                g_tTestCaseTable.stTestTypeStatistic.powermockito = dByPowerMockito;
+                g_tTestCaseTable.stTestTypeStatistic.vectorcast = dVectorCast;
+
+                g_tTestCaseTable.stTestTypeStatistic.gettersetter = dGetterSetter;
+                g_tTestCaseTable.stTestTypeStatistic.emptymethod = dEmptymethod;
+                g_tTestCaseTable.stTestTypeStatistic.abstractmethod = dAbstractmethod;
+                g_tTestCaseTable.stTestTypeStatistic.interfacemethod = dInterfacemethod;
+                g_tTestCaseTable.stTestTypeStatistic.nativemethod = dNativemethod;
+
+                g_tTestCaseTable.stTestTypeStatistic.codeanalysis = dBycodeanalysis;
+                g_tTestCaseTable.stTestTypeStatistic.purefunctioncalls = dPurefunctioncalls;
+                g_tTestCaseTable.stTestTypeStatistic.pureUIfunctioncalls = dPureUIfunctioncalls;
+
+
+                g_tTestCaseTable.stTestTypeStatistic.unknow = dUnknow;
+
 
                 // Double check the sum of the counts.
                 int dSum = g_tTestCaseTable.dNormalEntryCount + g_tTestCaseTable.dRepeatedEntryCount + g_tTestCaseTable.dErrorEntryCount;

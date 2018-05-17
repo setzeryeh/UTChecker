@@ -13,7 +13,7 @@ namespace UTChecker
         static class TestCaseTableConstants
         {
 
-            // Indices for the summary sheet
+            // Indices for the summary sheet in Template file.
             public enum RowIndex
             {
                 DOC_NAME = 1,
@@ -32,7 +32,7 @@ namespace UTChecker
                 ERROR_COUNT,
             }
 
-            // Indices for the lookup sheet
+            // Indices for the lookup sheet in Template file.
             public enum ColumnIndex
             {
                 NG_MARKER = 1, // for marking & filtering NG entries
@@ -44,7 +44,9 @@ namespace UTChecker
                 TC_SOURCE_FILE,
                 NOTE,
                 TEST_LOG,
+                TEST_RESULT,
                 TEST_LOG_PATH,
+                SUTS,
             }
 
             public const int HEADER_HEIGHT = 2;

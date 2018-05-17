@@ -29,14 +29,16 @@ namespace UTChecker
                 METHOD_COUNT,
                 TESTCASE_COUNT,
 
+                MOCKITO,
+                POWERMOCKIT,
+
+                VECTORCAST,
+
                 GETTER_SETTER,
                 EMPTY,
                 INTERFACE,
                 ABSTRACE,
                 NATIVE,
-
-                MOCKITO,
-                POWERMOCKIT,
 
                 BY_CODE_ANALYSIS,
                 PURE_CALL,
@@ -48,10 +50,10 @@ namespace UTChecker
                 NORMAL_ENTRY,
                 REPEATED_ENTRY,
                 ERROR_ENTRY,
-                NG_COUNT,
 
                 ERROR_COUNT,
-
+                NG_COUNT,
+                SUTS_STATUS,
             }
         }
 

@@ -61,6 +61,7 @@ namespace UTChecker
         {
             FileName = "";
             Process = "Process.log";
+            CultureInfo culture = new CultureInfo("en-US");
 
             if (File.Exists(Process))
             {
@@ -71,7 +72,7 @@ namespace UTChecker
             // Log the message to process log
             using (StreamWriter sw = File.AppendText(Process))
             {
-                sw.WriteLine(DateTime.Now.ToString(new CultureInfo("en-US")));
+                sw.WriteLine("Create Process.log at " + DateTime.Now.ToString(culture));
             }
 
         }

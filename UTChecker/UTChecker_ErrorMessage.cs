@@ -10,8 +10,12 @@ namespace UTChecker
     {
         public static class ErrorMessage
         {
-            //
-            public const string EXCEL_APP_IS_NULL = "EXCEL app is null.";
+            // for office
+            public const string EXCEL_APP_IS_NULL = "The handler of EXCEL Application is null.";
+            public const string WORD_APP_IS_NULL = "The handler of WORD Application is null.";
+            public const string SUTS_DOC_IS_NULL = "The handler of SUTS Document is null.";
+
+
             public const string NO_ENTRY_TO_BE_SAVED = "No item to be saved.";
             public const string OUTPUT_FILE_IS_NULL = "Output file is null.";
 
@@ -38,8 +42,13 @@ namespace UTChecker
             public const string REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC = "Reason shall be given for N/A TC func.";
 
             public const string TC_TEST_MEANS_SHALL_NOT_BE_UNKNOWN = "TC test means shall not be unknown";
-            public const string MISSING_TESTCASE_FUNCTION_NAME = "Missing Test Case";
+
+
             public const string TESTLOG_IS_MISSING = "The Test Log is missing";
+
+            public const string AMBIGUOUS_BETWEEN_TCFUN_TCNOT = "Ambiguous test between function and Note.";
+            public const string CLASS_SHALL_BE_DEFINED_IN_SUTS = "Class shall be defined in SUTS";
+
         }
     }
 }

@@ -1,15 +1,315 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Excel = Microsoft.Office.Interop.Excel;
-
+using Word = Microsoft.Office.Interop.Word;
 
 namespace UTChecker
 {
     public partial class UTChecker
     {
+
+        #region Parse TDS
+
+
+        /// <summary>
+        /// Read the information from Coversheet.
+        /// </summary>
+        /// <param name="a_excelBook"></param>
+        /// <param name="a_sSourceFileName"></param>
+        /// <param name="a_sMethodName"></param>
+        /// <returns></returns>
+        private bool ReadInfoFromTDSCoverSheet(Excel.Workbook a_excelBook, ref string a_sSourceFileName, ref string a_sMethodName)
+        {
+            Excel.Worksheet excelSheet;
+            Excel.Range excelRange;
+            string sSourceFileName;
+            string sValue;
+            int dRow, dCol;
+            const string sSheetName = "Coversheet";
+            bool bIsJava, bIsCOrCpp;
+
+
+            // -------------------------------------------------------------------------
+            // Read data form the "Coversheet" sheet.
+            // -------------------------------------------------------------------------
+            try
+            {
+                excelSheet = (Excel.Worksheet)a_excelBook.Worksheets.get_Item(sSheetName);
+                excelRange = excelSheet.UsedRange;
+            }
+            catch
+            {
+                Logger.Print(Constants.StringTokens.MSG_BULLET, "No \"" + sSheetName + "\" sheet can be found.");
+                return false;
+            }
+
+            // Locate the considered cell (where y in [2,4] and x in [2,3]).
+            bool bFound = false;
+            dCol = 2;
+            for (dRow = 2; dRow <= 3; dRow++)
+            {
+                for (dCol = 2; dCol <= 4; dCol++)
+                {
+                    sValue = ReadStringFromExcelCell(excelRange.Cells[dRow, dCol], "", true);
+                    if ("File" == sValue)
+                    {
+                        bFound = true;
+                        break;
+                    }
+                }
+                if (bFound)
+                {
+                    break;
+                }
+            }
+
+            if (bFound)
+            {
+                // Read the file name & SVN revision.
+                sSourceFileName = ReadStringFromExcelCell(excelRange.Cells[dRow, dCol + 1], "", true);
+
+                // Check if the source file name contains any space, and remove it.
+                // e.g. "XXX .java" --> "XXX.java"
+                if (sSourceFileName.Contains(" "))
+                {
+                    Logger.Print(Constants.StringTokens.MSG_BULLET, "File name \"" + sSourceFileName + "\" contains space(s). Stripped.");
+                    sSourceFileName.Replace(" ", "");
+                }
+
+                // Check if the string read is a java/c/cpp file.
+                string sTmp = sSourceFileName.ToLower();
+                bIsJava = sTmp.EndsWith(".java");
+                bIsCOrCpp = (sTmp.EndsWith(".c") || sTmp.EndsWith(".cpp"));
+
+                // Set the source file name read and increase the row.
+                if (bIsCOrCpp || bIsJava)
+                {
+                    a_sSourceFileName = sSourceFileName;
+                    dRow++;
+                }
+            }
+            else
+            {
+                Logger.Print(Constants.StringTokens.MSG_BULLET, "No source file name can be found from the \"" + sSheetName + "\" sheet.");
+                return false;
+            }
+
+            // Extrace method name.
+            a_sMethodName = "";
+            if (bIsCOrCpp)
+            {
+                // Locate the method name cell.
+                bFound = false;
+                dRow++;
+                for (; dRow <= 7; dRow++)
+                {
+                    for (dCol = 1; dCol <= 3; dCol++)
+                    {
+                        sValue = ReadStringFromExcelCell(excelRange.Cells[dRow, dCol], "", true);
+                        if ("Method Name" == sValue)
+                        {
+                            bFound = true;
+                            break;
+                        }
+                    }
+
+                    // Extract method name.
+                    if (bFound)
+                    {
+                        dRow++;
+                        dCol = dCol + 2;
+                        sValue = ReadStringFromExcelCell(excelRange.Cells[dRow, dCol], "", true);
+                        a_sMethodName = ExtractMethodName(sValue);
+
+                        return ("" != a_sMethodName);
+                    }
+                }
+
+                return false;
+            }
+
+            return true;
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_sModuleName"></param>
+        /// <param name="a_lsTDSFiles"></param>
+        /// <param name="a_lsTestLogs"></param>
+        /// <param name="a_sutsDocPath"></param>
+        /// <returns></returns>
+        private bool ReadDataFromTDSFiles(string a_sModuleName, ref List<string> a_lsTDSFiles, ref List<TestLog> a_lsTestLogs, string a_SUTSDocPath)
+        {
+            string sFuncName = "[ReadDataFromTDSFiles]";
+
+            Excel.Workbook excelBook = null;
+            Word.Document wordDoc = null;
+
+            bool bIsJava;
+            string sFileNameWithoutPath;
+            string sShortTDSFileName;
+            string sSourceFileName = "";
+            string sMethodName = "";
+            int dErrorCount = 1;
+            int dProceedFileCount = 0;
+
+
+            // Check the input list.
+            if (null == a_lsTDSFiles)
+            {
+                Logger.Print(sFuncName, "The input list of TDS is null.");
+                return false;
+            }
+
+            if (0 == a_lsTDSFiles.Count)
+            {
+                Logger.Print(sFuncName, "The TDS file(s) aren't found.");
+                return false;
+            }
+
+            // Check the input list.
+            if (null == a_lsTestLogs)
+            {
+                Logger.Print(sFuncName, "The input list of Test log is null.");
+                return false;
+            }
+
+            if (0 == a_lsTestLogs.Count)
+            {
+                Logger.Print(sFuncName, "The Test Log file(s) aren't found.");
+                return false;
+            }
+
+
+            // Check the EXCEL app.
+            if (null == g_excelApp)
+            {
+                Logger.Print(sFuncName, ErrorMessage.EXCEL_APP_IS_NULL);
+                return false;
+            }
+
+            if (null == g_wordApp)
+            {
+                Logger.Print(sFuncName, ErrorMessage.WORD_APP_IS_NULL);
+                return false;
+            }
+
+
+            try
+            {
+                Logger.Print(sFuncName, "Reading TDS files...");
+
+                // Initialize objects.
+                dErrorCount = 0;
+                g_tTestCaseTable.ltItems.Clear();
+                g_excelApp.DisplayAlerts = false; // show no alert while closing the file
+
+
+                // clear previous result.
+                SUTS_ClearPreviousResult();
+
+
+                // Read data from each TDS file.
+                foreach (string sFile in a_lsTDSFiles)
+                {
+                    sFileNameWithoutPath = "\"" + Path.GetFileName(sFile) + "\"";
+                    Logger.Print(sFuncName, "Reading " + sFileNameWithoutPath + "...");
+
+                    // Check the existence of the TDS file.
+                    if (!File.Exists(sFile))
+                    {
+                        Logger.Print(Constants.StringTokens.MSG_BULLET, "Cannot find " + sFile);
+                        dErrorCount++;
+                        continue;
+                    }
+
+                    // Open the TDS file & get the lookup-table sheet.
+                    excelBook = OpenExcelWorkbook(g_excelApp, sFile, true);  // ready only
+                    if (null == excelBook)
+                    {
+                        continue;
+                    }
+
+                    wordDoc = OpenWordDocument(g_wordApp, a_SUTSDocPath);
+                    if (null == wordDoc)
+                    {
+                        Logger.Print(sFuncName, $"Cannot found SUTS.");
+                    }
+
+
+                    try
+                    {
+                        // Read source file name from the cover sheet.
+                        if (!ReadInfoFromTDSCoverSheet(excelBook, ref sSourceFileName, ref sMethodName))
+                        {
+                            dErrorCount++;
+                            continue;
+                        }
+
+
+                        // Determine the source file type.
+                        bIsJava = (sSourceFileName.EndsWith("java"));
+
+
+                        // Read data form the "TestCase" sheet.
+                        sShortTDSFileName = sFile.Replace(g_sTDSPath + a_sModuleName + "\\", "");
+                        if (bIsJava)
+                        {
+                            ReadTestCasesFromTDSFile_Java(excelBook, wordDoc, ref sShortTDSFileName, ref sSourceFileName, ref a_lsTestLogs);
+                        }
+                        else
+                        {
+                            ReadTestCasesFromTDSFile_C(excelBook, wordDoc, ref sShortTDSFileName, ref sSourceFileName, ref sMethodName, ref a_lsTestLogs);
+                        }
+
+
+                        dProceedFileCount++;
+
+                    }
+                    catch (SystemException ex)
+                    {
+                        Logger.Print(sFuncName, sFile.Replace(g_sTDSPath, "...") + ": " + ex.ToString());
+                        dErrorCount++;
+                    }
+                    finally
+                    {
+                        // Close the TDS file.
+                        excelBook.Close(false, Type.Missing, Type.Missing);
+
+                        wordDoc.Close((Object)Word.WdSaveOptions.wdDoNotSaveChanges, Type.Missing, Type.Missing);
+                    }
+                }
+            }
+            catch (SystemException ex)
+            {
+                Logger.Print(sFuncName, ex.ToString());
+                dErrorCount++;
+            }
+
+            // Show the # of proceeded files.
+            if (dProceedFileCount != a_lsTDSFiles.Count)
+            {
+                Logger.Print(sFuncName, dProceedFileCount.ToString() + " of " + a_lsTDSFiles.Count + " TDS files proceed.");
+            }
+
+            return true;
+        }
+
+
+        #endregion
+
+
+
+
+
+
+
 
 
         #region Java Group
@@ -66,10 +366,16 @@ namespace UTChecker
         /// <param name="a_sTDSFile"></param>
         /// <param name="a_sSourceFileName"></param>
         /// <returns></returns>
-        private int ReadTestCasesFromTDSFile_Java(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName, ref List<TestLog> a_lsTestLogs)
+        private int ReadTestCasesFromTDSFile_Java(
+                                    Excel.Workbook a_excelBook, 
+                                    Word.Document a_wordDoc,
+                                    ref string a_sTDSFile, 
+                                    ref string a_sSourceFileName, 
+                                    ref List<TestLog> a_lsTestLogs)
         {
             string sFuncName = "[ReadTestCasesFromTDSFile_Java]";
 
+            // for Excel
             Excel.Worksheet excelSheet;
             Excel.Range excelRange;
 
@@ -83,10 +389,12 @@ namespace UTChecker
             string sTCSourceFileName = "";
             string sTCNote = "";
             int dErrorCount = 0;
+
+            TestType eTestType;
             TestMeans eTestMeans;
+            TestLog eTestLog;
 
             string sMsgHeader, sMsg;
-
 
             try
             {
@@ -126,7 +434,7 @@ namespace UTChecker
                         break;
                     }
 
-                    sMsgHeader = Constants.StringTokens.MSG_BULLET + " Row " + i.ToString() + ":";
+                    sMsgHeader = sFuncName + ":" + Constants.StringTokens.MSG_BULLET + " Row " + i.ToString() + ":";
 
                     // Read data from the table.
                     int dCol = 1;
@@ -136,17 +444,19 @@ namespace UTChecker
                     sTCNote = ReadStringFromExcelCell(excelRange.Cells[i, ++dCol], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
 
 
-
-
                     // Determine the test means.
-                    eTestMeans = DetermineTestMeans(sTCNote);
+                    eTestType = DetermineTestType(sTCNote);
+                    eTestMeans = DetermineTestMeans(eTestType);
+
 
 
                     // --------------------------------------------------
                     // Check & adjust the read data.
                     // --------------------------------------------------
 
+                    //
                     // Check & modfy method name:
+                    //
                     if (sMethodName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sMethodName = sMethodName0;
@@ -185,7 +495,10 @@ namespace UTChecker
                     }
 
 
+
+                    //
                     // Check & modify TC label.
+                    //
                     if (sTCLabelName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sTCLabelName = sTCLabelName0;
@@ -218,7 +531,10 @@ namespace UTChecker
                     }
 
 
+
+                    //
                     // Check & modify TC func.
+                    //
                     if (sTCFuncName0.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER))
                     {
                         sTCFuncName = sTCFuncName0;
@@ -250,9 +566,9 @@ namespace UTChecker
                             Logger.Print(sMsgHeader, ErrorMessage.REASON_SHALL_BE_GIVEN_FOR_NA_TC_FUNC);
                             dErrorCount++;
                         }
-                        if (eTestMeans == TestMeans.TEST_SCRIPT)
+                        else if (eTestMeans == TestMeans.TEST_SCRIPT)
                         {
-                            sMsg = ErrorMessage.MISSING_TESTCASE_FUNCTION_NAME + ": \"" + sTCFuncName0 + "\"";
+                            sMsg = ErrorMessage.AMBIGUOUS_BETWEEN_TCFUN_TCNOT + ": \"" + sTCFuncName0 + " and " + sTCNote + "\"";
                             sTCFuncName = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
                             Logger.Print(sMsgHeader, sMsg);
                             dErrorCount++;
@@ -282,8 +598,70 @@ namespace UTChecker
                     }
 
 
+                    eTestLog = new TestLog();
+
+                    //
+                    // Check & modify Note
+                    //
+                    if (eTestMeans == TestMeans.TEST_SCRIPT)
+                    {
+
+                        if (Constants.StringTokens.NA == sTCFuncName0)
+                        {
+                            sMsg = ErrorMessage.AMBIGUOUS_BETWEEN_TCFUN_TCNOT + ": \"" + sTCFuncName0 + " and " + sTCNote + "\"";
+                            sTCNote = Constants.StringTokens.ERROR_MSG_HEADER + sMsg;
+                            Logger.Print(sMsgHeader, sMsg);
+                            dErrorCount++;
+                        }
+                        else
+                        {
+
+                            //
+                            // find test log
+                            //
+
+
+                            string testcase = a_sSourceFileName.Replace(".java", "Test.") + sTCFuncName0;
+
+                            int index = 0;
+                            bool bFound = false;
+
+                            // find log
+                            foreach (TestLog t in a_lsTestLogs)
+                            {
+                                if (testcase.Equals(t.ToString()))
+                                {
+                                    bFound = true;
+                                    break;
+                                }
+
+                                index++;
+                            }
+
+                            if (bFound)
+                            {
+
+                                try
+                                {
+                                    a_lsTestLogs[index].Increment();
+                                    eTestLog = a_lsTestLogs[index];
+
+                                }
+                                catch (Exception e)
+                                {
+                                    Logger.Print(sFuncName, e.Message);
+                                    eTestLog = new TestLog();
+                                }
+                            }
+
+                        }
+                    }
+
+
+
                     // Determine the test case source file name.
-                    if (sTCFuncName0.StartsWith(Constants.StringTokens.NA))
+                    if ((sTCFuncName0.StartsWith(Constants.StringTokens.NA) == true) &&
+                        (sTCNote.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER) == false))
                     {
                         sTCSourceFileName = sTCFuncName;
                     }
@@ -292,61 +670,44 @@ namespace UTChecker
                         sTCSourceFileName = a_sSourceFileName.Replace(".java", "Test.java");
                     }
 
-                    TestLog eTestLog = new TestLog();
 
-                    if (dErrorCount == 0)
+
+                   
+                    //
+                    // Find SUTS
+                    //
+                    string sChapterInSUTS = Constants.StringTokens.ERROR;
+
+                    if (!a_sSourceFileName.StartsWith(Constants.StringTokens.NA))
                     {
-
-                        string testcase = a_sSourceFileName.Replace(".java", "Test.") + sTCFuncName0;
-
-                        int index = 0;
-                        bool bFound = false;
-
-                        // find log
-                        foreach (TestLog t in a_lsTestLogs)
-                        {
-                            if (t.ToString().Equals(testcase))
-                            {
-                                bFound = true;
-                                break;
-                            }
-
-                            index++;
-                        }
-
-                        
-                        try
-                        {
-                            if (bFound)
-                            {
-                                a_lsTestLogs[index].Increment();
-                                eTestLog = a_lsTestLogs[index];
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Print(e.Message);
-                        }
-
-
+                        string className = a_sSourceFileName.Replace(".java", "");
+                        string docName = a_sTDSFile;
+                        sChapterInSUTS = SUTS_FindSectionOfClass_Java(a_wordDoc, className, docName);
                     }
 
 
-                    // Record the data read.
+
+                    //
+                    // Record the data
+                    //
                     TestCaseItem tItem = new TestCaseItem();
 
-                    tItem.sTDSFileName = a_sTDSFile;
                     tItem.sSourceFileName = a_sSourceFileName;
                     tItem.sMethodName = sMethodName;
                     tItem.sTCLabelName = sTCLabelName;
                     tItem.sTCFuncName = sTCFuncName;
+                    tItem.sTDSFileName = a_sTDSFile;
                     tItem.sTCSourceFileName = sTCSourceFileName;
                     tItem.sTCNote = sTCNote;
                     tItem.eTestMeans = eTestMeans;
                     tItem.eTestlog = eTestLog;
-
+                    tItem.eType = eTestType;
+                    tItem.sChapterInSUTS = sChapterInSUTS;
+                    
                     g_tTestCaseTable.ltItems.Add(tItem);
+
                 }
+
             }
             catch (SystemException ex)
             {
@@ -358,73 +719,101 @@ namespace UTChecker
         }
 
 
-
         /// <summary>
-        /// Determine the type/mean for test case.
+        /// Determin the test type by TCNote
         /// </summary>
         /// <param name="a_sInfo"></param>
         /// <returns></returns>
-        private TestMeans DetermineTestMeans(string a_sInfo)
+        private TestType DetermineTestType(string a_sNote)
         {
-            TestMeans eTestMeans = TestMeans.UNKNOWN;
+            TestType eTestType = TestType.Unknow;
 
-            if (a_sInfo.Equals("N/A"))
+            if (GetStringValue(TestType.ByMockito).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.TEST_SCRIPT;
-                gn_ByMockito++;
+                eTestType = TestType.ByMockito;
             }
-            else if (a_sInfo.Equals(TestType.ByPowerMocktio))
+            else if (GetStringValue(TestType.ByPowerMockito).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.TEST_SCRIPT;
-                gn_ByPowerMockito++;
+                eTestType = TestType.ByPowerMockito;
             }
-            else if (a_sInfo.Equals(TestType.ByCodeAnalysis))
+
+
+            else if (GetStringValue(TestType.GetterSetter).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.CODE_ANALYSIS;
-                gn_Bycodeanalysis++;
+                eTestType = TestType.GetterSetter;
             }
-            else if (a_sInfo.Equals(TestType.GetterSetter))
+            else if (GetStringValue(TestType.Empty).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.NA;
-                gn_GetterSetter++;
+                eTestType = TestType.Empty;
             }
-            else if (a_sInfo.Equals(TestType.Empty))
+            else if (GetStringValue(TestType.Abstract).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.NA;
-                gn_Emptymethod++;
+                eTestType = TestType.Abstract;
             }
-            else if (a_sInfo.Equals(TestType.Abstract))
+            else if (GetStringValue(TestType.Interface).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.NA;
-                gn_Abstractmethod++;
+                eTestType = TestType.Interface;
             }
-            else if (a_sInfo.Equals(TestType.Interface))
+            else if (GetStringValue(TestType.Native).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.NA;
-                gn_Interfacemethod++;
+                eTestType = TestType.Native;
             }
-            else if (a_sInfo.Equals(TestType.Native))
+
+            else if (GetStringValue(TestType.ByCodeAnalysis).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.NA;
-                gn_Nativemethod++;
+                eTestType = TestType.ByCodeAnalysis;
             }
-            else if (a_sInfo.Equals(TestType.PureFunctionCalls))
+            else if (GetStringValue(TestType.PureFunctionCalls).Equals(a_sNote))
             {
-                //eMethodType = MethodType.PURE_CALL;
-                eTestMeans = TestMeans.CODE_ANALYSIS;
-                gn_Purefunctioncalls++;
+                eTestType = TestType.PureFunctionCalls;
             }
-            else if (a_sInfo.Equals(TestType.PureUIFunctionCalss))
+            else if (GetStringValue(TestType.PureUIFunctionCalls).Equals(a_sNote))
             {
-                eTestMeans = TestMeans.CODE_ANALYSIS;
-                gn_PureUIfunctioncalls++;
+                eTestType = TestType.PureUIFunctionCalls;
             }
             else
             {
-                eTestMeans = TestMeans.UNKNOWN;
-                gn_Unknow++;
+                eTestType = TestType.Unknow;
+            }
 
-                Logger.Print(" - UNKNOW: ", String.Format("\"{0}\"", a_sInfo));
+            return eTestType;
+        }
+
+
+        /// <summary>
+        /// Determine the meaning of test type.
+        /// </summary>
+        /// <param name="testType"></param>
+        /// <returns></returns>
+        private TestMeans DetermineTestMeans(TestType testType)
+        {
+            TestMeans eTestMeans = TestMeans.UNKNOWN;
+
+            switch (testType)
+            {
+                case TestType.ByMockito:
+                case TestType.ByPowerMockito:
+                    eTestMeans = TestMeans.TEST_SCRIPT;
+                    break;
+
+                case TestType.GetterSetter:
+                case TestType.Empty:
+                case TestType.Abstract:
+                case TestType.Interface:
+                case TestType.Native:
+                    eTestMeans = TestMeans.NA;
+                    break;
+
+
+                case TestType.PureFunctionCalls:
+                case TestType.PureUIFunctionCalls:
+                case TestType.ByCodeAnalysis:
+                    eTestMeans = TestMeans.CODE_ANALYSIS;
+                    break;
+
+                default:
+                    eTestMeans = TestMeans.UNKNOWN;
+                    break;
             }
 
             return eTestMeans;
@@ -432,6 +821,15 @@ namespace UTChecker
 
 
         #endregion
+
+
+
+
+
+
+
+
+
 
 
 
@@ -444,11 +842,19 @@ namespace UTChecker
         /// 
         /// </summary>
         /// <param name="a_excelBook"></param>
+        /// <param name="a_wordDoc"></param>
         /// <param name="a_sTDSFile"></param>
         /// <param name="a_sSourceFileName"></param>
         /// <param name="a_sMethodName"></param>
+        /// <param name="a_lsTestLogs"></param>
         /// <returns></returns>
-        private int ReadTestCasesFromTDSFile_C(Excel.Workbook a_excelBook, ref string a_sTDSFile, ref string a_sSourceFileName, ref string a_sMethodName, ref List<TestLog> a_lsTestLogs)
+        private int ReadTestCasesFromTDSFile_C(
+                                Excel.Workbook a_excelBook,
+                                Word.Document a_wordDoc, 
+                                ref string a_sTDSFile, 
+                                ref string a_sSourceFileName, 
+                                ref string a_sMethodName, 
+                                ref List<TestLog> a_lsTestLogs)
         {
             const string sFuncName = "[ReadTestCasesFromTDSFile_C]";
 
@@ -598,46 +1004,51 @@ namespace UTChecker
                     }
 
 
-
                     // new a objec TestLog for init.
                     TestLog eTestLog = new TestLog();
 
-                    if (dErrorCount == 0)
+                    string testcase = a_sMethodName + "." + sTCLabelName;
+
+                    
+
+                    int index = 0;
+                    bool isFound = false;
+
+                    // find log
+                    foreach (TestLog t in a_lsTestLogs)
                     {
-
-                        string testcase = a_sMethodName + "." + sTCLabelName;
-
-                        int index = 0;
-                        bool isFound = false;
-
-                        // find log
-                        foreach (TestLog t in a_lsTestLogs)
+                        if (t.ToString().Equals(testcase))
                         {
-                            if (t.ToString().Equals(testcase))
-                            {
-                                isFound = true;
-                                break;
-                            }
-
-                            index++;
+                            isFound = true;
+                            break;
                         }
 
+                        index++;
+                    }
 
+                    if (isFound)
+                    {
                         try
                         {
-                            if (isFound)
-                            {
-                                a_lsTestLogs[index].Increment();
-                                eTestLog = a_lsTestLogs[index];
-                                Logger.Print($"Found Test Case {eTestLog.ToString()}", Logger.PrintOption.File);
-                            }
+                            a_lsTestLogs[index].Increment();
+                            eTestLog = a_lsTestLogs[index];
                         }
                         catch (Exception e)
                         {
-                            Logger.Print(e.Message, Logger.PrintOption.Both);
+                            Logger.Print("", e.Message);
                         }
+                    }
 
 
+                    //
+                    // Find SUTS
+                    //
+                    string sChapterInSUTS = "";
+
+                    if (!a_sSourceFileName.StartsWith(Constants.StringTokens.NA))
+                    { 
+                        
+                        sChapterInSUTS = SUTS_FindSectionOfClass_C(a_wordDoc, a_sMethodName, sTCLabelName);
                     }
 
 
@@ -645,16 +1056,18 @@ namespace UTChecker
                     // Record the data read.
                     TestCaseItem tItem = new TestCaseItem();
 
-                    tItem.sTDSFileName = a_sTDSFile;
                     tItem.sSourceFileName = a_sSourceFileName;
                     tItem.sMethodName = a_sMethodName;
                     tItem.sTCSourceFileName = Constants.StringTokens.NA;
                     tItem.sTCLabelName = sTCLabelName.StartsWith(Constants.StringTokens.ERROR_MSG_HEADER) ?
                         sTCLabelName : a_sMethodName + "." + sTCLabelName;
                     tItem.sTCFuncName = Constants.StringTokens.NA;
+                    tItem.sTDSFileName = a_sTDSFile;
                     tItem.sTCNote = Constants.StringTokens.NA;
                     tItem.eTestMeans = TestMeans.TEST_SCRIPT;
                     tItem.eTestlog = eTestLog;
+                    tItem.eType = TestType.ByVectorCast;
+                    tItem.sChapterInSUTS = sChapterInSUTS;
 
                     g_tTestCaseTable.ltItems.Add(tItem);
 
@@ -671,14 +1084,6 @@ namespace UTChecker
         }
 
         #endregion
-
-
-
-
-
-
-
-
 
 
     }

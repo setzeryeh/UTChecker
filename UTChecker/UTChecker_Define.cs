@@ -1,12 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
+using Word = Microsoft.Office.Interop.Word;
 
 namespace UTChecker
 {
@@ -14,6 +17,19 @@ namespace UTChecker
     {
         public static class Constants
         {
+            public const string SUTS_FINDTEXT_PATTERN1_JAVA = 
+                "Test cases and test information are detailed in NUGEN Test Data Sheet - ";
+
+            public const string SUTS_FINDTEXT_PATTERN2_JAVA =
+                "Test cases and test information are detailed in NUGEN Test Data Sheet - ";
+
+            /// <summary>
+            /// 
+            /// </summary>
+            public const string SUTS_FILENAME_PREFIX = "NUGEN Software Unit Test Specification Document of ";
+            public const string SUTS_FILENAME_EXT = "*.doc";
+
+
             /// <summary>
             /// Prefix and Ext file name for TDS
             /// </summary>
@@ -34,6 +50,7 @@ namespace UTChecker
             public const string SHEET_NAME = "LookupTable";
             public const string SHEET_SUMMARY = "Summary";
 
+
             /// <summary>
             /// The numbers of Argument (Command Line)
             /// </summary>
@@ -43,7 +60,7 @@ namespace UTChecker
 
 
                 // list, tds path, output path, template, summary, test log path
-                public const int Args = 6;
+                public const int Args = 7;
                 public const int Match = Args  + Minium;
             }
 
@@ -86,25 +103,77 @@ namespace UTChecker
             public const string ReportTemplate = "REPORT_TEMPLATE";
             public const string SummaryTemplate = "SUMMARY_TEMPLATE";
             public const string TestLogPath = "TESTLOG_PATH";
+            public const string ReferenceListsPath = "REFERENCE_LISTS_PATH";
+            public const string SUTS_PATH = "SUTS_PATH";
+            public const string SURR_PATH = "SUTRR_PATH";
+        }
+
+        /// <summary>
+        /// An enum for Test Type
+        /// </summary>
+        public enum TestType
+        {
+            [Description("N/A")]
+            ByMockito = 1,
+
+            [Description("By PowerMockito")]
+            ByPowerMockito,
+
+            [Description("VectorCast")]
+            ByVectorCast,
+
+            [Description("Getter/Setter")]
+            GetterSetter,
+
+            [Description("Empty method")]
+            Empty,
+
+            [Description("Abstract method")]
+            Abstract,
+
+            [Description("Interface method")]
+            Interface,
+
+            [Description("Native method")]
+            Native,
+
+            [Description("Pure function calls")]
+            PureFunctionCalls,
+
+            [Description("Pure UI function calls")]
+            PureUIFunctionCalls,
+
+            [Description("By code analysis")]
+            ByCodeAnalysis,
+
+            [Description("Unknow")]
+            Unknow,
         }
 
 
         /// <summary>
-        /// The definition of Note in TDS
+        /// Get the string value of TestType.
         /// </summary>
-        public static class TestType
+        /// <param name="value"></param>
+        /// <returns></returns>
+        public static string GetStringValue(TestType value)
         {
-            public const string ByPowerMocktio = "By PowerMockito";
-            public const string ByMockito = "N/A";
-            public const string GetterSetter = "Getter/Setter";
-            public const string Empty = "Empty method";
-            public const string Abstract = "Abstract method";
-            public const string Interface = "Interface method";
-            public const string Native = "Native method";
-            public const string PureFunctionCalls = "Pure function calls";
-            public const string PureUIFunctionCalss = "Pure UI function calls";
-            public const string ByCodeAnalysis = "By code analysis";
+            FieldInfo fi = value.GetType().GetField(value.ToString());
+
+            DescriptionAttribute[] attributes =
+                (DescriptionAttribute[])fi.GetCustomAttributes(typeof(DescriptionAttribute), false);
+
+            if (attributes != null && attributes.Length > 0)
+            {
+                return attributes[0].Description;
+            }
+            else
+            {
+                return value.ToString();
+            }
         }
+
+
 
         /// <summary>
         /// The meaing of Test
@@ -124,6 +193,9 @@ namespace UTChecker
             NA,
         }
 
+
+
+
         public struct TestCaseItem
         {
             public string sSourceFileName;
@@ -133,13 +205,51 @@ namespace UTChecker
             public string sTCLabelName;
             public string sTCFuncName;
             public string sTCNote;
-            public TestMeans eTestMeans;
+
             public bool bIsRepeated;        // Only set it as true if the TC is testing the same method.
                                             // That is, it will be false if the TC is for testing multiplt methods.
-
+            public TestMeans eTestMeans;
             public TestLog eTestlog;
+            public TestType eType;
+
+            public string sChapterInSUTS;
 
         };
+
+
+
+        //
+        // A struct which contents the infomration about the numbers of test type
+        //
+        public struct TestTypeStatistic
+        {
+
+            // by test scripts
+            public int mockito;
+            public int powermockito;
+
+            // no test needed
+            public int gettersetter;
+            public int emptymethod;
+            public int abstractmethod;
+            public int interfacemethod;
+            public int nativemethod;
+
+
+            // by code analysis
+            public int codeanalysis;
+            public int purefunctioncalls;
+            public int pureUIfunctioncalls;
+
+
+            public int vectorcast;
+
+            // unknow item
+            public int unknow;
+
+        };
+
+
 
         public struct TestCaseTable
         {
@@ -163,40 +273,14 @@ namespace UTChecker
             public int dErrorCount;         // total # of errors found
             public int dNGEntryCount;       // total # of NG entries (EXCEL rows)
 
+            public int dTestLogIssueCount;
+            public int dSUTSIssueCount;
+
             public List<TestCaseItem> ltItems;
+
+            public TestTypeStatistic stTestTypeStatistic;
+
         };
-
-
-        //
-        // A struct which contents the infomration about the numbers of test type
-        //
-        public struct ModuleInfo
-        {
-            public string name;
-
-            // no test needed
-            public int gettersetter;
-            public int emptymethod;
-            public int abstractmethod;
-            public int interfacemethod;
-            public int nativemethod;
-
-            // by test scripts
-            public int mockito;
-            public int powermockito;
-
-            // by code analysis
-            public int codeanalysis;
-            public int purefunctioncalls;
-            public int pureUIfunctioncalls;
-
-            // unknow item
-            public int unknow;
-
-            public int count;
-
-            public TestCaseTable testCase;
-        }
 
 
         /// <summary>
@@ -210,6 +294,9 @@ namespace UTChecker
             public string reportTemplate;
             public string summaryTemplate;
             public string testlogPath;
+            public string referenceListsPath;
+            public string sutsPath;
+            public string sutrrPath;
 
         }
 
@@ -226,26 +313,36 @@ namespace UTChecker
         }
 
 
-        public enum TestResult
-        {
-            NOT_AVAILABLE = 0,
-            PASSED,
-            FAILED,
-            NA
-        }
-
-        public EnvrionmentSetting g_FilePathSetting { get; internal set; }
-        public RunBy RunUTCheckerBy { get; private set; }
-        public event EventHandler UpdatePathEvent;
-
         /// <summary>
         /// BackgroundWorker handler for UTChecker
         /// </summary>
         private BackgroundWorker g_bwUTChecker;
 
-        static public TestCaseTable g_tTestCaseTable;
+        /// <summary>
+        /// An event to trigger updating the setting of Path to MainForm
+        /// </summary>
+        public event EventHandler UpdatePathEvent;
 
+
+        public EnvrionmentSetting g_FilePathSetting { get; internal set; }
+        public RunBy RunUTCheckerBy { get; private set; }
+
+
+
+
+        /// <summary>
+        /// A handler for Excel
+        /// </summary>
         static Excel.Application g_excelApp = null;
+
+        /// <summary>
+        /// A handler for Word
+        /// </summary>
+        static Word.Application g_wordApp = null;
+
+
+
+        static public TestCaseTable g_tTestCaseTable;
 
 
         static string g_sModuleListFile = "";
@@ -254,37 +351,22 @@ namespace UTChecker
         static string g_sTemplateFile = "";
         static string g_sSummaryReport = "";
         static string g_sTestLogPath = "";
+        static string g_sReferenceListsPath = "";
+        static string g_sSUTSPath = "";
+        static string g_sSUTRRPath = "";
 
+        static string g_sSUTSDocumentPath = "";
 
         /// <summary>
         /// A string that is used to be a path where the Log file saved at.
         /// </summary>
         static string g_sErrorLogFile = "";
 
-
-
         static List<string> g_lsModules = null;
-
         static List<TestLog> g_lsTestLogs = null;
         static List<string> g_lsTDSFiles = null;
 
-        static List<ModuleInfo> g_lsModuleInfo = null;
 
 
-        /// <summary>
-        ///  variables which content the numbers for each test type
-        /// </summary>
-        static int gn_ByMockito = 0;
-        static int gn_ByPowerMockito = 0;
-        static int gn_Bycodeanalysis = 0;
-        static int gn_GetterSetter = 0;
-        static int gn_Emptymethod = 0;
-        static int gn_Abstractmethod = 0;
-        static int gn_Interfacemethod = 0;
-        static int gn_Nativemethod = 0;
-        static int gn_Purefunctioncalls = 0;
-        static int gn_PureUIfunctioncalls = 0;
-
-        static int gn_Unknow = 0;
     }
 }

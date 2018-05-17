@@ -30,6 +30,13 @@ namespace UTChecker
 
             InitializeComponent();
 
+            this.textBoxReferenceListsPath.Hide();
+            this.textBoxSUTRRPath.Hide();
+
+            this.buttonSelectReferenceListsPath.Hide();
+            this.buttonSelectSUTRRPath.Hide();
+
+
             gTDSParser = new UTChecker(this);
             gTDSParser.UpdatePathEvent += new EventHandler(this.UpdatePath);
             
@@ -48,7 +55,7 @@ namespace UTChecker
         private void MainForm_Load(object sender, EventArgs e)
         {
 
-            if (!gTDSParser.UpdateSetting())
+            if (!gTDSParser.UpdateEnvironmentSetting())
             {
                 
                 Environment.ExitCode = 111;
@@ -90,8 +97,12 @@ namespace UTChecker
             this.textBoxReportTemplate.Text = gTDSParser.g_FilePathSetting.reportTemplate;
             this.textBoxSummaryTemplate.Text = gTDSParser.g_FilePathSetting.summaryTemplate;
             this.textBoxTestLogPath.Text = gTDSParser.g_FilePathSetting.testlogPath;
-
+            this.textBoxReferenceListsPath.Text = gTDSParser.g_FilePathSetting.referenceListsPath;
+            this.textBoxSUTSPath.Text = gTDSParser.g_FilePathSetting.sutsPath;
+            this.textBoxSUTRRPath.Text = gTDSParser.g_FilePathSetting.sutrrPath;
         }
+
+
 
         /// <summary>
         /// 
@@ -107,6 +118,9 @@ namespace UTChecker
             ps.reportTemplate = this.textBoxReportTemplate.Text;
             ps.summaryTemplate = this.textBoxSummaryTemplate.Text;
             ps.testlogPath = this.textBoxTestLogPath.Text;
+            ps.referenceListsPath = this.textBoxReferenceListsPath.Text;
+            ps.sutsPath = this.textBoxSUTSPath.Text;
+            ps.sutrrPath = this.textBoxSUTRRPath.Text;
 
             return ps;
         }
@@ -216,6 +230,48 @@ namespace UTChecker
             if (this.folderBrowserDialog1.ShowDialog() == DialogResult.OK)
             {
                 this.textBoxOutputPath.Text = this.folderBrowserDialog1.SelectedPath;
+            }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void buttonSelectSourceListPath_Click(object sender, EventArgs e)
+        {
+            if (this.folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                this.textBoxReferenceListsPath.Text = this.folderBrowserDialog1.SelectedPath;
+            }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void buttonSelectSUTSPath_Click(object sender, EventArgs e)
+        {
+            if (this.folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                this.textBoxSUTSPath.Text = this.folderBrowserDialog1.SelectedPath;
+            }
+        }
+
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void buttonSelectSUTRRPath_Click(object sender, EventArgs e)
+        {
+            if (this.folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            {
+                this.textBoxSUTRRPath.Text = this.folderBrowserDialog1.SelectedPath;
             }
         }
     }

@@ -16,7 +16,7 @@ namespace UTChecker
         /// <param name="a_sStartPath"></param>
         /// <param name="a_sOutFile"></param>
         /// <returns></returns>
-        private List<string> SearchTDSFiles(string a_sStartPath, string a_sOutFile)
+        private List<string> CollectTDSFiles(string a_sStartPath, string a_sOutFile)
         {
             string sFuncName = "[SearchTDSFiles]";
 
@@ -43,8 +43,7 @@ namespace UTChecker
 #endif
             }
 
-            Logger.Print(sFuncName, a_lsOutList.Count.ToString() + " TDS file(s) collected.");
-
+            Logger.Print(sFuncName, $"{a_lsOutList.Count} TDS file(s) are collected.", Logger.PrintOption.Both);
 
             return a_lsOutList;
         }
@@ -199,17 +198,20 @@ namespace UTChecker
             {
 #if DEBUG
                 WriteTestLogsListToTextFile(ref a_lsOutList, sTempListFileName);
-#endif
+#endif 
             }
 
             //List<string> logs = processLogs(a_lsOutList, sTempListFileName);
 
-            Logger.Print(sFuncName, a_lsOutList.Count.ToString() + " Test Log(s) collected.");
+            Logger.Print(sFuncName, $"{a_lsOutList.Count} Test Log file(s) are collected.", Logger.PrintOption.Both);
 
 
             return a_lsOutList;
         }
         
+
+
+
         /// <summary>
         /// Collect the test log from file system.
         /// </summary>
