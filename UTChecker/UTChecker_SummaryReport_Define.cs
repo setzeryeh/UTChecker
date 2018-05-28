@@ -53,7 +53,8 @@ namespace UTChecker
 
                 ERROR_COUNT,
                 NG_COUNT,
-                SUTS_STATUS,
+                TESTLOG_ISSUE_COUNT,
+                SUTS_ISSUE_COUNT,
             }
         }
 

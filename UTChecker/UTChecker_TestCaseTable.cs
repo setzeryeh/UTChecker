@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -20,7 +21,10 @@ namespace UTChecker
         /// <param name="a_sOutFile"></param>
         /// <param name="a_lsTestLogs"></param>
         /// <returns></returns>
-        public bool SaveResults(string a_sTemplateFile, string a_sOutFile, ref List<TestLog> a_lsTestLogs)
+        public bool SaveResults(string a_sTemplateFile,
+                                string a_sOutFile,
+                                ref List<TestLog> a_lsTestLogs)
+                                
         {
             string sFuncName = "[SaveResults]";
 
@@ -52,6 +56,7 @@ namespace UTChecker
 
             try
             {
+
                 // Open the template file.
                 excelBook = OpenExcelWorkbook(g_excelApp, a_sTemplateFile, true); // read only
 
@@ -61,6 +66,7 @@ namespace UTChecker
                     return false;
                 }
 
+
                 // Write the summary sheet. 
                 // Note: This step must be behind the write-details step.
                 if (!WriteSummarySheet(excelBook, a_sOutFile))
@@ -68,11 +74,11 @@ namespace UTChecker
                     return false;
                 }
 
-
-
                 // Save the modified template as the output file.
                 g_excelApp.DisplayAlerts = false; // show no alert while overwritten old file
                 excelBook.SaveAs(a_sOutFile);
+
+
             }
             catch (System.Exception ex)
             {
@@ -153,37 +159,42 @@ namespace UTChecker
                 dRow = excelSheet.UsedRange.Rows.Count + 1; ;
                 int dLogNGCount = 0;
 
-                foreach (TestLog t in a_lsTestLogs)
+
+
+                var testLogSet = from data in a_lsTestLogs
+                                 where data.UsedCount == 0
+                                 select data;
+
+
+
+                foreach (TestLog t in testLogSet)
                 {
+                    
 
-                    if (t.UsedCount == 0)
-                    {
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NG_MARKER] = Constants.StringTokens.X;
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.METHOD_NAME] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SOURCE_FILE] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_NAME] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TDS_FILE] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = $"Error:{t.ClassName}<{t.FileName}>";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_RESULT] = TestLog.TestResult.NOT_AVAILABLE.ToString();
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = t.FullPath;
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SUTS] = "N/A";
 
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NG_MARKER] = Constants.StringTokens.X;
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.METHOD_NAME] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SOURCE_FILE] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_LABEL] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_NAME] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TDS_FILE] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TC_SOURCE_FILE] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NOTE] = "N/A";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = $"Error:{t.ClassName}<{t.FileName}>";
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_RESULT] = TestLog.TestResult.NOT_AVAILABLE.ToString();
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH] = t.FullPath;
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SUTS] = "N/A";
+                    excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG].Interior.Color = Constants.Color.RED;
 
-                        excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG].Interior.Color = Constants.Color.RED;
+                    Logger.Print($" * Row {dRow}: Test Log {t.ClassName}.{t.FileName} isn't assigned.", Logger.PrintOption.File);
 
-                        Logger.Print($" * Test Log {t.FileName} is not assigned.", Logger.PrintOption.File);
+                    dRow++;
 
-                        dRow++;
-
-                        // increment ng count
-                        dLogNGCount++;
-
-                    }
+                    // increment ng count
+                    dLogNGCount++;
 
                 }
+
 
                 g_tTestCaseTable.dTestLogIssueCount += dLogNGCount;
 
@@ -248,9 +259,11 @@ namespace UTChecker
             string sHeader;
             bool bOK;
 
-            string sPreSUTS = "";
-
             Logger.Print("\n" + sFuncName, "Checking & highlighting incorrect cells in the output report...");
+
+
+            //Queue<string> quSUTSMissing = new Queue<string>();
+            ListDictionary ldSUTSMissing = new ListDictionary();
 
             // Highlight incorrect cells.
             for (i = 0, dRow = TestCaseTableConstants.FIRST_ROW; i < g_tTestCaseTable.ltItems.Count; i++, dRow++)
@@ -317,9 +330,8 @@ namespace UTChecker
 
                     if (tTestCase.eTestlog.FileName.StartsWith(Constants.StringTokens.NA))
                     {
-                        Logger.Print(sHeader, ErrorMessage.TESTLOG_IS_MISSING);
+                        Logger.Print(sHeader, $"{tTestCase.sTCLabelName} doesn't have Test Log.");
                         a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG] = ErrorMessage.TESTLOG_IS_MISSING;
-
                         a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG].Interior.Color = Constants.Color.RED;
                         a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.TEST_LOG_PATH].Interior.Color = Constants.Color.RED;
                         bOK = false;
@@ -335,18 +347,21 @@ namespace UTChecker
                     dErrorCount++;
                 }
 
+
+
                 // for SUTS issue
                 if (g_tTestCaseTable.ltItems[i].sChapterInSUTS.StartsWith(Constants.StringTokens.ERROR))
                 {
-                    Logger.Print(sHeader, ErrorMessage.CLASS_SHALL_BE_DEFINED_IN_SUTS + ": \"" + tTestCase.sSourceFileName + "\"");
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.SUTS].Interior.Color = Constants.Color.RED;
                     bOK = false;
 
-
-                    if (!g_tTestCaseTable.ltItems[i].sSourceFileName.Equals(sPreSUTS))
+                    
+                    if (!ldSUTSMissing.Contains(g_tTestCaseTable.ltItems[i].sSourceFileName))
                     {
+                        ldSUTSMissing.Add(g_tTestCaseTable.ltItems[i].sSourceFileName, null);
                         dSUTSIssueCount++;
-                        sPreSUTS = g_tTestCaseTable.ltItems[i].sSourceFileName;
+                        Logger.Print(sHeader, ErrorMessage.CLASS_SHALL_BE_DEFINED_IN_SUTS + ": \"" + tTestCase.sSourceFileName + "\"");
+
                     }
 
                 }
@@ -358,7 +373,12 @@ namespace UTChecker
                     dNGCount++;
                     a_excelRange.Cells[dRow, TestCaseTableConstants.ColumnIndex.NG_MARKER] = Constants.StringTokens.X;
                 }
+
+                
             }
+
+
+
 
             // update count
             g_tTestCaseTable.dTestLogIssueCount = dTestLogIssueCount;
@@ -389,7 +409,6 @@ namespace UTChecker
                 // Get the used range of the 1st sheet.
                 excelSheet = (Excel.Worksheet)a_excelBook.Worksheets.get_Item(1);
                 excelRange = excelSheet.UsedRange;
-
 
 
 

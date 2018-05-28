@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,80 @@ namespace UTChecker
 {
     public partial class UTChecker
     {
+        private static int _gLogIndex = -1;
+        private static Object LogLock = new object();
+
+
+        public static int gLogIndex
+        {
+
+            get
+            {
+                lock(LogLock)
+                {
+                    return _gLogIndex;
+                }
+            }
+
+            set
+            {
+                lock (LogLock)
+                {
+                    _gLogIndex = value;
+                }
+            }
+    
+        }
+
+        public static void SearchTestLog(object obj)
+        {
+
+            Tuple<string, string, List<TestLog>> items = (Tuple<string, string, List<TestLog>>)obj;
+
+            string className = items.Item1;
+            string fileName = items.Item2;
+            List<TestLog> a_lsTestLogs = items.Item3;
+
+            Predicate<TestLog> FindValue = delegate (TestLog log)
+            {
+                return (log.ClassName == className) && (log.FileName == fileName);
+            };
+
+
+            int index = a_lsTestLogs.FindIndex(FindValue);
+
+            gLogIndex = index;
+        }
+
+
+
+        private delegate int SearchTestLogExDelegate(object obj);
+
+        public static int  SearchTestLogEx(object obj)
+        {
+
+            Tuple<string, string, List<TestLog>> items = (Tuple<string, string, List<TestLog>>)obj;
+
+            string className = items.Item1;
+            string fileName = items.Item2;
+            List<TestLog> a_lsTestLogs = items.Item3;
+
+            Predicate<TestLog> FindValue = delegate (TestLog log)
+            {
+                return (log.ClassName == className) && (log.FileName == fileName);
+            };
+
+
+            int index = a_lsTestLogs.FindIndex(FindValue);
+
+            gLogIndex = index;
+
+            return index;
+        }
+
+
+
+
 
 
         /// <summary>
@@ -186,18 +261,10 @@ namespace UTChecker
                 string c1 = "N/A";
                 string c2 = "A/N";
 
+                 c1 = this.ClassName + "." + this.FileName;
+                 c2 = other.ClassName + "." + other.FileName;
 
-                if (this.Type == PlateformType.Mockito || 
-                    this.Type == PlateformType.PowerMockito)
-                {
-                    c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
-                    c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
-                }
-                else if (this.Type == PlateformType.VectorCast)
-                {
-                    c1 = this.FileName.Replace(".txt", "");
-                    c2 = other.FileName.Replace(".txt", "");
-                }
+
 
                 return c1.CompareTo(c2);
 
@@ -221,21 +288,8 @@ namespace UTChecker
                 }
 
 
-                if (this.Type == PlateformType.Mockito ||
-                    this.Type == PlateformType.PowerMockito)
-                {
-                    c1 = this.ClassName + "." + this.FileName.Replace(".txt", "");
-                    c2 = other.ClassName + "." + other.FileName.Replace(".txt", "");
-                }
-                else if (this.Type == PlateformType.VectorCast)
-                {
-                    c1 = this.FileName.Replace(".txt", "");
-                    c2 = other.FileName.Replace(".txt", "");
-                }
-                else
-                {
-                   
-                }
+                c1 = this.ClassName + "." + this.FileName;
+                c2 = other.ClassName + "." + other.FileName;
 
 
                 if (c1.CompareTo(obj) == 0)
@@ -459,13 +513,14 @@ namespace UTChecker
                         // remove ext file name.
                         string testCaseString = this.FileName.Replace(".txt", "");
 
-
+                       
                         // confirm
-                        if (!sLines[0].Contains(testCaseString) &&
-                            !sLines[sLines.Length - 1].Contains(testCaseString))
-                        {
-                            return TestResult.INVALID;
-                        }
+                        //if (!sLines[0].Contains(testCaseString) &&
+                        //    !sLines[sLines.Length - 1].Contains(testCaseString))
+                        //if (!sLines[sLines.Length - 2].Contains(testCaseString))
+                        //    {
+                        //    return TestResult.INVALID;
+                        //}
 
 
                         // Search for the "passed" token from last 5 lines of the file.
@@ -580,8 +635,6 @@ namespace UTChecker
                 return eTestResult;
 
             }
-
-
 
         }
     }

@@ -35,11 +35,12 @@ namespace UTChecker
 
 
                 //Remove old output file.
-                if (!File.Exists(dest))
+                if (File.Exists(dest))
                 {
-                   File.Copy(templatePath, dest);
+                    File.Delete(dest);
                 }
 
+                File.Copy(templatePath, dest);
 
             }
             catch (Exception ex)
@@ -59,11 +60,11 @@ namespace UTChecker
         /// </summary>
         /// <param name="a_sSummaryReportFile"></param>
         /// <returns></returns>
-        public List<string> ReadAllModuleNamesFromExcel(string a_sSummaryReportFile)
+        public Dictionary<string, int> ReadAllModuleNamesFromExcel(string a_sSummaryReportFile)
         {
             string sFuncName = "[ReadSummaryModuleTable]";
 
-            List<string> lsModuleNames = null;
+            Dictionary<string, int> lsModuleNames = null;
 
             Excel.Workbook excelBook = null;
             Excel.Worksheet excelSheet;
@@ -91,14 +92,14 @@ namespace UTChecker
                 
 
                 // Open the specified EXCEL file.
-                excelBook = g_excelApp.Workbooks.Open(a_sSummaryReportFile, 0, true, 6, "", "", true,
+                excelBook = g_excelApp.Workbooks.Open(a_sSummaryReportFile, 0, true, 5, "", "", true,
                     Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
 
                 // Get the used range of the 1st sheet.
                 excelSheet = (Excel.Worksheet)excelBook.Worksheets.get_Item(SummaryReport.SHEET_NAME);
                 excelRange = excelSheet.UsedRange;
 
-                lsModuleNames = new List<string>();
+                lsModuleNames = new Dictionary<string, int>();
 
                 for (int i = SummaryReport.FIRST_ROW; i <= excelRange.Rows.Count; i++)
                 {
@@ -109,8 +110,7 @@ namespace UTChecker
                         Logger.Print(sFuncName, "Row " + i.ToString() + ": Module name is empty.");
                     }
 
-
-                    lsModuleNames.Add(sModuleName);
+                    lsModuleNames.Add(sModuleName, i);
                 }
 
             }
@@ -123,7 +123,6 @@ namespace UTChecker
             }
             finally
             {
-
                 excelBook.Close(false, Type.Missing, Type.Missing);
             }
 
@@ -206,15 +205,21 @@ namespace UTChecker
 
             try
             {
+                
+                excelBook = g_excelApp.Workbooks.Open(a_sExcelFile, 0, false, 5, "", "", true,
+                    Excel.XlPlatform.xlWindows, "\t", false, false, 0, true, 1, 0);
+
                 // Open the EXCEL file.
-                excelBook = OpenExcelWorkbook(g_excelApp, a_sExcelFile, false);
+                //excelBook = OpenExcelWorkbook(g_excelApp, a_sExcelFile, true);
+
+
                 excelSheet = excelBook.Worksheets.get_Item(SummaryReport.SHEET_NAME);
                 excelRange = excelSheet.UsedRange;
 
 
                 // index
                 //excelRange.Cells[int, SummaryReport.ColumnIndex.INDEX] = dRawCount - SummaryReport.FIRST_ROW + 1;
-                int dRow = SummaryReport.HEADER_HEIGHT + index;
+                int dRow = index;
                 // name
                 //excelRange.Cells[dRow, SummaryReport.ColumnIndex.MODULE_NAME] = item.name;
 
@@ -242,8 +247,6 @@ namespace UTChecker
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_CALL] = item.stTestTypeStatistic.purefunctioncalls;
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.PURE_UI_CALL] = item.stTestTypeStatistic.pureUIfunctioncalls;
 
-
-
                 // unknow
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.UNKNOW] = item.stTestTypeStatistic.unknow;
 
@@ -252,18 +255,27 @@ namespace UTChecker
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.NORMAL_ENTRY] = item.dNormalEntryCount;
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.REPEATED_ENTRY] = item.dRepeatedEntryCount;
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_ENTRY] = item.dErrorEntryCount;
-
-
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.ERROR_COUNT] = item.dErrorCount;
-
                 excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT] = item.dNGEntryCount;
-
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.TESTLOG_ISSUE_COUNT] = item.dTestLogIssueCount;
+                excelRange.Cells[dRow, SummaryReport.ColumnIndex.SUTS_ISSUE_COUNT] = item.dSUTSIssueCount;
 
                 // set The color of background for this cell to indicate that this is a Error.
                 if (item.dNGEntryCount > 0)
                 {
                     excelRange.Cells[dRow, SummaryReport.ColumnIndex.NG_COUNT].Interior.Color = Constants.Color.RED;
                 }
+
+                if (item.dTestLogIssueCount > 0)
+                {
+                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.TESTLOG_ISSUE_COUNT].Interior.Color = Constants.Color.RED;
+                }
+
+                if (item.dSUTSIssueCount > 0)
+                {
+                    excelRange.Cells[dRow, SummaryReport.ColumnIndex.SUTS_ISSUE_COUNT].Interior.Color = Constants.Color.RED;
+                }
+
 
 
                 // Save the modified template as the output file.

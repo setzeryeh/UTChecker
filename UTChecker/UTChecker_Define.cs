@@ -13,27 +13,100 @@ using Word = Microsoft.Office.Interop.Word;
 
 namespace UTChecker
 {
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public struct EnvrionmentSetting
+    {
+        /// <summary>
+        /// The path of list file
+        /// </summary>
+        public string listFile;
+
+        /// <summary>
+        /// The path of TDS
+        /// </summary>
+        public string tdsPath;
+
+        /// <summary>
+        /// The path for outcome
+        /// </summary>
+        public string outputPath;
+
+        /// <summary>
+        /// The path of report template (include file name)
+        /// </summary>
+        public string reportTemplate;
+
+        /// <summary>
+        /// The path of summary template (include file name)
+        /// </summary>
+        public string summaryTemplate;
+
+        /// <summary>
+        /// The path of test log
+        /// </summary>
+        public string testlogPath;
+
+        /// <summary>
+        /// The path of SUTS
+        /// </summary>
+        public string sutsPath;
+
+        /// <summary>
+        /// reserved
+        /// </summary>
+        public string referenceListsPath;
+
+        /// <summary>
+        ///  reserved
+        /// </summary>
+        public string sutrrPath;
+
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    public enum RunMode
+    {
+        // run TDS_Parser by CommandLine
+        CommandLine,
+
+        // run TDS_Parser by Window/User
+        User,
+
+        // None
+        None,
+    }
+
+
     public partial class UTChecker
     {
         public static class Constants
         {
-            public const string SUTS_FINDTEXT_PATTERN1_JAVA = 
-                "Test cases and test information are detailed in NUGEN Test Data Sheet - ";
-
-            public const string SUTS_FINDTEXT_PATTERN2_JAVA =
-                "Test cases and test information are detailed in NUGEN Test Data Sheet - ";
 
             /// <summary>
-            /// 
+            /// Prefix of the SUTS.
             /// </summary>
             public const string SUTS_FILENAME_PREFIX = "NUGEN Software Unit Test Specification Document of ";
+
+            /// <summary>
+            /// Ext file name of SUTS
+            /// </summary>
             public const string SUTS_FILENAME_EXT = "*.doc";
 
 
             /// <summary>
-            /// Prefix and Ext file name for TDS
+            /// Prefix of the TDS.
             /// </summary>
             public const string TDS_FILENAME_PREFIX = "NUGEN Test Data Sheet - ";
+
+            /// <summary>
+            /// Ext file name of TDS
+            /// </summary>
             public const string TDS_FILENAME_EXT = "*.xlsx";
 
             /// <summary>
@@ -46,8 +119,14 @@ namespace UTChecker
             /// </summary>
             public const string REPORT_PREFIX = "UT_CHECK_";
 
-
+            /// <summary>
+            /// The sheet name of Lookup table in TDS
+            /// </summary>
             public const string SHEET_NAME = "LookupTable";
+
+            /// <summary>
+            /// /The sheet name of Summary in TDS
+            /// </summary>
             public const string SHEET_SUMMARY = "Summary";
 
 
@@ -107,6 +186,7 @@ namespace UTChecker
             public const string SUTS_PATH = "SUTS_PATH";
             public const string SURR_PATH = "SUTRR_PATH";
         }
+
 
         /// <summary>
         /// An enum for Test Type
@@ -283,34 +363,12 @@ namespace UTChecker
         };
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public struct EnvrionmentSetting
-        {
-            public string listFile;
-            public string tdsPath;
-            public string outputPath;
-            public string reportTemplate;
-            public string summaryTemplate;
-            public string testlogPath;
-            public string referenceListsPath;
-            public string sutsPath;
-            public string sutrrPath;
-
-        }
+        
 
         /// <summary>
-        /// 
+        /// return Code
         /// </summary>
-        public enum RunBy
-        {
-            // run TDS_Parser by CommandLine
-            CommandLine,
-
-            // run TDS_Parser by Window/User
-            User,
-        }
+        public int ReturnCode { get; private set; } = -100;
 
 
         /// <summary>
@@ -318,44 +376,38 @@ namespace UTChecker
         /// </summary>
         private BackgroundWorker g_bwUTChecker;
 
-        /// <summary>
-        /// An event to trigger updating the setting of Path to MainForm
-        /// </summary>
-        public event EventHandler UpdatePathEvent;
-
 
         public EnvrionmentSetting g_FilePathSetting { get; internal set; }
-        public RunBy RunUTCheckerBy { get; private set; }
 
 
 
+        public RunMode Mode { get; private set; } = RunMode.None;
 
         /// <summary>
         /// A handler for Excel
         /// </summary>
-        static Excel.Application g_excelApp = null;
+        private static Excel.Application g_excelApp = null;
 
         /// <summary>
         /// A handler for Word
         /// </summary>
-        static Word.Application g_wordApp = null;
-
+        private static Word.Application g_wordApp = null;
 
 
         static public TestCaseTable g_tTestCaseTable;
 
 
-        static string g_sModuleListFile = "";
-        static string g_sTDSPath = "";
-        static string g_sOutputPath = "";
-        static string g_sTemplateFile = "";
-        static string g_sSummaryReport = "";
-        static string g_sTestLogPath = "";
-        static string g_sReferenceListsPath = "";
-        static string g_sSUTSPath = "";
-        static string g_sSUTRRPath = "";
+        static string g_sModuleListFile = string.Empty;
+        static string g_sTDSPath = string.Empty;
+        static string g_sOutputPath = string.Empty;
+        static string g_sTemplateFile = string.Empty;
+        static string g_sSummaryReport = string.Empty;
 
-        static string g_sSUTSDocumentPath = "";
+        static string g_sTestLogPath = string.Empty;
+        static string g_sSUTSPath = string.Empty;
+        static string g_sSUTSDocumentPath = string.Empty;
+        static string g_sReferenceListsPath = string.Empty;
+        static string g_sSUTRRPath = string.Empty;
 
         /// <summary>
         /// A string that is used to be a path where the Log file saved at.
@@ -363,10 +415,10 @@ namespace UTChecker
         static string g_sErrorLogFile = "";
 
         static List<string> g_lsModules = null;
-        static List<TestLog> g_lsTestLogs = null;
         static List<string> g_lsTDSFiles = null;
 
 
+        static List<TestLog> g_lsTestLogs = null;
 
     }
 }

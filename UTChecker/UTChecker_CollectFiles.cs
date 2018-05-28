@@ -35,13 +35,14 @@ namespace UTChecker
             // Serach and collect all log files recursively.
             CollectFiles(a_sStartPath, Constants.TDS_FILENAME_EXT, Constants.TDS_FILENAME_PREFIX, ref a_lsOutList);
 
+#if DEBUG
             // Save the list of found files to the specifed file.
             if ("" != a_sOutFile)
             {
-#if DEBUG
-                WriteStringListToTextFile(ref a_lsOutList, a_sOutFile);
-#endif
+
+                // WriteStringListToTextFile(ref a_lsOutList, a_sOutFile);
             }
+#endif
 
             Logger.Print(sFuncName, $"{a_lsOutList.Count} TDS file(s) are collected.", Logger.PrintOption.Both);
 
@@ -160,53 +161,58 @@ namespace UTChecker
         /// <summary>
         /// 
         /// </summary>
-        /// <param name="a_sName"></param>
-        /// <param name="a_sLogPath"></param>
-        /// <returns></returns>
-        public List<TestLog> CollectTestLogs(string a_sName, string a_sLogPath)
+        /// <param name="obj">A Tuple object includes 2 string items, 1st is Name, 2nd is Path</param>
+        public  void CollectTestLogs(object obj)
         {
-            string sFuncName = "[SearchTestLogs]";
+            string sFuncName = "[CollectTestLogs]";
 
-            string a_sStartPath = a_sLogPath + a_sName + "\\";
+
+            Tuple<string, string> items = (Tuple<string, string>)obj;
+
+            string lName = items.Item1;
+            string lPath = items.Item2;
+            string a_sStartPath = lPath + lName + "\\";
 
             //string sTempListForLog = a_sStartPath + a_sName + "_testlogs.list";
-            string sTempListFileName = a_sName + "_testlogs.txt";
+            string sTempListFileName = lName + "_testlogs.txt";
 
+            g_lsTestLogs = null;
 
             // Check the input parameters.
             if ("" == a_sStartPath)
             {
                 Logger.Print(sFuncName, "Null start path is specified.");
-                return null;
+                return;
             }
 
-            if (!Directory.Exists(a_sLogPath))
+            if (!Directory.Exists(lPath))
             {
-                Logger.Print(sFuncName, $"Can't found direcoty {a_sLogPath}");
-                return null;
+                Logger.Print(sFuncName, $"Can't found direcoty {lPath}");
+                return;
             }
 
 
             List<TestLog> a_lsOutList = new List<TestLog>();
 
-
             // Serach and collect all log files recursively.
             CollectFiles(a_sStartPath, Constants.TESTLOG_FILENAME_EXT, ref a_lsOutList);
 
+#if DEBUG
             // Save the list of found files to the specifed file.
             if ("" != sTempListFileName)
             {
-#if DEBUG
-                WriteTestLogsListToTextFile(ref a_lsOutList, sTempListFileName);
-#endif 
-            }
 
-            //List<string> logs = processLogs(a_lsOutList, sTempListFileName);
+                WriteTestLogsListToTextFile(ref a_lsOutList, sTempListFileName);
+            }
+#endif 
 
             Logger.Print(sFuncName, $"{a_lsOutList.Count} Test Log file(s) are collected.", Logger.PrintOption.Both);
 
 
-            return a_lsOutList;
+            g_lsTestLogs = a_lsOutList;
+            g_lsTestLogs.Sort();
+
+            //return a_lsOutList;
         }
         
 
@@ -219,7 +225,7 @@ namespace UTChecker
         /// <param name="a_sFileExt">extention file name</param>
         /// <param name="a_lsCollection">a List object for TestLog</param>
         /// <returns></returns>
-        private List<TestLog> CollectFiles(string a_sDir, string a_sFileExt, ref List<TestLog> a_lsCollection)
+        private static List<TestLog> CollectFiles(string a_sDir, string a_sFileExt, ref List<TestLog> a_lsCollection)
         {
             string sFuncName = "[CollectFiles - Test Log]";
 

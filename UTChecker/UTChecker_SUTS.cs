@@ -30,28 +30,19 @@ namespace UTChecker
                                     "Default Test Procedure",
                                     "Execute the following commands in command line to run all test cases to test the target function:",
                                     "adb shell",
-                                    "N/A",
+                                    String.Empty,
+                                    String.Empty,
                                     "PowerMockito Test Procedure",
                                     "Please refer to 1.4 for the detailed steps of the test procedure",
                                     "Test project:",
                                     "Package path:",
                                     };
 
-        
 
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="a_wordDoc"></param>
-        /// <param name="a_classText"></param>
-        /// <param name="a_TDSExcelName"></param>
-        /// <returns></returns>
         public string SUTS_FindSectionOfClass_Java(Word.Document a_wordDoc, string a_classText, string a_TDSExcelName)
         {
             string sFuncName = "[FindSectionOfClassInSUTS_Java]";
-
 
             // if current text is same as previous, then just return the previous result.
             if (a_classText.Equals(sPrevFindString))
@@ -81,190 +72,214 @@ namespace UTChecker
             bool bSUTSFound = false;
 
             // flag that indicate the suts has beed found is used for a break from searching loop.
-            bool bForceBreak = false;
+            bool bSyntaxCheckingBreak = false;
 
 
             string szTocString = String.Empty;
 
+            Word.Paragraphs lParagraphs = null;
 
             try
             {
 
+                object unit = Word.WdUnits.wdParagraph;
+                a_wordDoc.TablesOfContents[1].IncludePageNumbers = false;
+                a_wordDoc.TablesOfContents[1].HidePageNumbersInWeb = true;
 
-                object unit = Word.WdUnits.wdSentence;
-
-                int tS = a_wordDoc.Application.ActiveDocument.Content.Start;
-                int tE = a_wordDoc.Application.ActiveDocument.Content.End;
-                //Logger.Print($"Range from {tS} to {tE}", Logger.PrintOption.Both);
-
-                int loopStart = a_wordDoc.TablesOfContents[1].Range.End;
-                int loopEnd = a_wordDoc.Application.ActiveDocument.Content.End;
 
                 // find class Name in ToC
-                foreach (Word.Paragraph p in a_wordDoc.TablesOfContents[1].Range.Paragraphs)
+                foreach (Word.Hyperlink hl in a_wordDoc.TablesOfContents[1].Range.Hyperlinks)
                 {
 
-                    char[] charSeparators = new char[] { ' ', '\r', '\t' };
-                    string[] words = p.Range.Text.Split(charSeparators, StringSplitOptions.RemoveEmptyEntries);
+                    Word.Bookmark wb = a_wordDoc.Bookmarks[hl.SubAddress];
 
-                    //Logger.Print($"{p.Range.Start,05} - {p.Range.End,05} - {p.Range.Text}", Logger.PrintOption.Both);
+                    //Logger.Print($"1:{hl.Name}, 2:{hl.Range.Text} 4:{wb.Range.Text}", Logger.PrintOption.File);
+
+                    string replaceString = hl.Range.Text.Replace('\t', ' ').Replace('\r', ' ');
+
+                    //// get chapter
+                    string chapter = replaceString.Substring(0, replaceString.IndexOf(' ')).Trim();
+                    string header = replaceString.Substring(chapter.Length).Trim();
 
 
-                    if (a_classText.EndsWith(words[1]))
+                    string wbString = new string(wb.Range.Text.Where(c => !char.IsControl(c)).ToArray()).Trim();
+
+
+
+                    if (a_classText.Equals(header) && wbString.Equals(header))
                     {
                         bToCFound = true;
-                        szTocString = $"{words[0]} - {words[1]}";
+                        szTocString = $"{chapter} - {header}";
+                        lParagraphs = wb.Range.Paragraphs;
                         break;
                     }
 
+
                 }
 
+
+
+                // return Error if the class cannot be found in ToC
                 if (bToCFound == false)
                 {
-                    Logger.Print($"  - {a_classText} has not fould in the table of contents of SUTS", Logger.PrintOption.File);
+                    Logger.Print($"  - {a_classText} has not fould in the table of contents of SUTS", Logger.PrintOption.Both);
+
+                    sPrevResult = Constants.StringTokens.ERROR;
+                    sPrevFindString = a_classText;
+
                     return Constants.StringTokens.ERROR;
                 }
 
 
+                // get paragraph from above result.
+                Word.Range range = lParagraphs.First.Range;
 
-                foreach (Word.Paragraph paragraph in a_wordDoc.Application.ActiveDocument.Paragraphs)
+                // revmoe control character.
+                string sz = new string(range.Text.Where(c => !char.IsControl(c)).ToArray());
+                string title = sz.Trim();
+
+ 
+
+                if (a_classText.Equals(title) &&
+                    lParagraphs.OutlineLevel == Word.WdOutlineLevel.wdOutlineLevel2)
                 {
-                    int diff = 0;
 
-                    Word.Range r = paragraph.Range;
+                    bSyntaxCheckingBreak = true;
 
+                    // get next one of paragraph
+                    Word.Range nextPara = range.Next(unit);
 
-                    string title = r.Text.Trim(new char[] { '\r', '\n', '\u0015', ' ', '\t' });
+                    //Logger.Print($"({r.Paragraphs.Count}) - \"{r.Text}\"", Logger.PrintOption.File);
 
-                    if (a_classText.EndsWith(title) &&
-                        r.Paragraphs[1].OutlineLevel == Word.WdOutlineLevel.wdOutlineLevel2)
+                    for (int index = 0; index < SUTS_Pattern_JAVA.Length; index++)
                     {
 
-                        bForceBreak = true;
+                        string input = nextPara.Text;
 
-                        // get next one of paragraph
-                        Word.Range n = r.Next(unit);
+                        //Logger.Print($"({index,02}) - \"{input}\"", Logger.PrintOption.File);
+
+                        //char[] charA = input.ToCharArray();
+
+                        //StringBuilder sb = new StringBuilder();
+                        //foreach (char ch in charA)
+                        //{
+                        //    //Logger.Print($"{Convert.ToByte(ch).ToString("X2")} \'{ch:c}\'", Logger.PrintOption.File);
+                        //    sb.Append(Convert.ToByte(ch).ToString("X2") + " ");
+                        //}
+                        //Logger.Print($"{sb.ToString()}", "");
+                        //Logger.Print("", "");
 
 
-                        for (int i = 0; i < 10; i++)
+                        string output = new string(input.Where(c => !char.IsControl(c)).ToArray());
+                        string s = output.Trim();
+
+
+                        if (index == 1)
                         {
-                            string s = n.Text.Trim(new char[] { '\r', '\n', '\x15', '\x20', ' ' });
+                            string _TDSExcelName = a_TDSExcelName;
 
-                            int pTag = n.Paragraphs.Count;
-
-                            if (i == 1)
+                            // get file name 
+                            int ind = _TDSExcelName.LastIndexOf('\\');
+                            if (ind > 0)
                             {
-                                string _TDSExcelName = a_TDSExcelName;
-
-                                // get file name 
-                                int ind = _TDSExcelName.LastIndexOf('\\');
-                                if (ind > 0)
-                                {
-                                    _TDSExcelName = _TDSExcelName.Remove(0, ind + 1);
-                                }
-
-                                string docS = SUTS_Pattern_JAVA[1] + _TDSExcelName;
-
-                                if (docS.Equals(s))
-                                {
-                                    bSUTSFound = true;
-                                }
-                                else
-                                {
-                                    bSUTSFound = false;
-                                    Logger.Print("  - There are some different words between Pattern and SUTS. ", Logger.PrintOption.Both);
-                                    Logger.Print("    PATN: " + docS, Logger.PrintOption.Both);
-                                    Logger.Print("    SUTS: " + s, Logger.PrintOption.Both);
-
-                                    break;
-                                }
+                                _TDSExcelName = _TDSExcelName.Remove(0, ind + 1);
                             }
-                            else if (i == 4)
+
+                            string docS = SUTS_Pattern_JAVA[1] + _TDSExcelName;
+
+                            if (docS.Equals(s))
                             {
-                                if (s.StartsWith("adb shell") || (s.StartsWith("N/A")))
-                                {
-                                    bSUTSFound = true;
-
-                                }
-                                else
-                                {
-                                    bSUTSFound = false;
-                                    Logger.Print("  - The content of Test script shall be N/A or starting with ADB shell.", Logger.PrintOption.Both);
-                                    break;
-                                }
-                            }
-                            else if (i == 5 && diff == 0)
-                            {
-                                if (s.Equals(string.Empty))
-                                {
-                                    bSUTSFound = true;
-
-                                    if (pTag >= 2)
-                                    {
-                                        Logger.Print("  - The tag of paragraph shall have one only.", Logger.PrintOption.Both);
-                                        break;
-                                    }
-                                }
-                                else
-                                {
-                                    diff = 1;
-
-                                    if (s.Equals(SUTS_Pattern_JAVA[i + diff]))
-                                    {
-                                        bSUTSFound = true;
-                                    }
-                                    else
-                                    {
-                                        Logger.Print($"  - The contents of section {a_classText} shall be double confirmed.", Logger.PrintOption.Both);
-                                        bSUTSFound = false;
-                                        break;
-                                    }
-                                }
+                                bSUTSFound = true;
                             }
                             else
                             {
+                                bSUTSFound = false;
+                                Logger.Print($" - There are some different words between Pattern and SUTS. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   PATN: {docS}", Logger.PrintOption.File);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
 
-                                if (s.Contains(SUTS_Pattern_JAVA[i + diff]))
+                                break;
+                            }
+                        }
+                        else if (index == 4)
+                        {
+                            if (s.StartsWith("adb shell") || (s.StartsWith("N/A")))
+                            {
+                                bSUTSFound = true;
+
+                            }
+                            else
+                            {
+                                bSUTSFound = false;
+                                Logger.Print($" - The content of Test script shall be N/A or starting with ADB shell. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+
+                                break;
+                            }
+                        }
+                        else if (index == 6)
+                        {
+
+                            if (String.IsNullOrEmpty(s))
+                            {
+                                bSUTSFound = true;
+                            }
+                            else
+                            {
+                                index++;
+
+                                if (s.Contains(SUTS_Pattern_JAVA[index]))
                                 {
                                     bSUTSFound = true;
-
-                                    // the final content of section
-                                    if (s.Contains(SUTS_Pattern_JAVA[9]))
-                                    {
-                                        break;
-                                    }
-
                                 }
                                 else
                                 {
                                     bSUTSFound = false;
-                                    Logger.Print($"  - The contents of section {a_classText} shall be double confirmed.", Logger.PrintOption.Both);
+                                    Logger.Print($" - The format of Section {a_classText} shall be checked. ({index})", Logger.PrintOption.Both);
+                                    //Logger.Print($"   PATN: {SUTS_Pattern_JAVA[index]}", Logger.PrintOption.File);
+                                    //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+                                    break;
+                                }
+                            }
+
+                        }
+                        else
+                        {
+
+                            if (s.Contains(SUTS_Pattern_JAVA[index]))
+                            {
+                                bSUTSFound = true;
+
+                                // the final content of section
+                                if (s.StartsWith(SUTS_Pattern_JAVA[SUTS_Pattern_JAVA.Length - 1]))
+                                {
                                     break;
                                 }
 
                             }
-
-                            // get next
-                            n = n.Next(unit);
+                            else
+                            {
+                                bSUTSFound = false;
+                                Logger.Print($" - The format of Section {a_classText} shall be check. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   PATN: {SUTS_Pattern_JAVA[index]}", Logger.PrintOption.File);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+                                break;
+                            }
 
                         }
 
-                        // forec break from foreach
-                        if (bForceBreak)
-                        {
-                            break;
-                        }
-                    }
-                    else
-                    {
-                        bSUTSFound = false;
+                        // get next
+                        nextPara = nextPara.Next(unit);
 
                     }
-
 
 
                 }
+                else
+                {
+                    bSUTSFound = false;
 
+                }
 
             }
             catch (Exception ex)
@@ -275,7 +290,7 @@ namespace UTChecker
             }
 
 
-            if (false == bSUTSFound && false == bForceBreak)
+            if (false == bSUTSFound && false == bSyntaxCheckingBreak)
             {
                 Logger.Print($"  - The content of section {a_classText} have not found.", Logger.PrintOption.Both);
                 szTocString = Constants.StringTokens.ERROR;
@@ -292,7 +307,6 @@ namespace UTChecker
 
 
 
-
         /// <summary>
         /// 
         /// </summary>
@@ -302,8 +316,6 @@ namespace UTChecker
         public string SUTS_FindSectionOfClass_C(Word.Document a_wordDoc, string a_methodName, string a_testCase)
         {
             string sFuncName = "[SUTS_FindSectionOfClass_C]";
-
-           
 
             string testCaseName = $"{a_methodName}.{a_testCase}";
 
@@ -327,41 +339,75 @@ namespace UTChecker
                 return Constants.StringTokens.ERROR;
             }
 
-            string szToCString = "";
+            string szToCString = String.Empty;
             bool bToCFound = false;
+            Word.Paragraphs lParagraphs = null;
 
             try
             {
 
-                // find class Name in ToC
-                foreach (Word.Paragraph p in a_wordDoc.TablesOfContents[1].Range.Paragraphs)
+                a_wordDoc.TablesOfContents[1].IncludePageNumbers = false;
+                a_wordDoc.TablesOfContents[1].HidePageNumbersInWeb = true;
+
+                foreach (Word.Hyperlink hl in a_wordDoc.TablesOfContents[1].Range.Hyperlinks)
                 {
-                    if (p.Range.Text.Contains(a_methodName))
+
+                    Word.Bookmark wb = a_wordDoc.Bookmarks[hl.SubAddress];
+
+                    //Logger.Print($"1:{hl.Name}, 2:{hl.Range.Text} 4:{wb.Range.Text}", Logger.PrintOption.File);
+
+                    string replaceString = hl.Range.Text.Replace('\t', ' ').Replace('\r', ' ');
+
+                    //// get chapter
+                    string chapter = replaceString.Substring(0, replaceString.IndexOf(' ')).Trim();
+                    string header = replaceString.Substring(chapter.Length).Trim();
+
+
+                    string wbString = new string(wb.Range.Text.Where(c => !char.IsControl(c)).ToArray()).Trim();
+
+
+
+                    if (a_methodName.Equals(header) && wbString.Equals(header))
                     {
-                        szToCString = p.Range.Text;
                         bToCFound = true;
+                        szToCString = $"{chapter} - {header}";
+                        lParagraphs = wb.Range.Paragraphs;
+
                         break;
                     }
+
+
                 }
+
 
                 if (bToCFound == false)
                 {
                     Logger.Print($"  - {a_methodName} has not fould in the table of contents of SUTS", Logger.PrintOption.File);
+
+                    sPrevResult = Constants.StringTokens.ERROR;
+                    sPrevFindString = testCaseName;
+
                     return Constants.StringTokens.ERROR;
                 }
+
+
 
                 // for Find.Execute
                 object findText = testCaseName;
 
 
-                Word.Range rng = a_wordDoc.Application.ActiveDocument.Content;
+                Word.Range rng = lParagraphs.First.Range;
                 rng.Find.ClearFormatting();
+
+                rng.SetRange(rng.Start, a_wordDoc.Application.ActiveDocument.Content.End);
+                rng.Select();
+
 
                 if (false == rng.Find.Execute(
                     ref findText,
-                    true, 
-                    Type.Missing, Type.Missing, Type.Missing, 
-                    Type.Missing, Type.Missing, Type.Missing, 
+                    true,
+                    Type.Missing, Type.Missing, Type.Missing,
+                    Type.Missing, Type.Missing, Type.Missing,
                     Type.Missing, Type.Missing, Type.Missing,
                     Type.Missing, Type.Missing, Type.Missing, Type.Missing))
                 {
@@ -377,7 +423,7 @@ namespace UTChecker
                 szToCString = Constants.StringTokens.ERROR;
             }
 
-            
+
             sPrevResult = szToCString;
             sPrevFindString = testCaseName;
 
@@ -385,51 +431,40 @@ namespace UTChecker
         }
 
 
-
-
         /// <summary>
-        /// 
+        /// Get the full path of SUTS
         /// </summary>
-        /// <param name="a_item"></param>
-        /// <param name="a_SUTSPath"></param>
-        /// <returns></returns>
-        public string SearchSUTSDocumentPath(string a_item, string a_SUTSPath)
+        /// <param name="a_name">The name of module</param>
+        /// <param name="a_path">The path of SUTS</param>
+        public string SearchSUTSDocumentPath(string a_name, string a_path)
         {
             string sFuncName = "[SearchSUTSDocumentPath]";
-            string suts_name = Constants.SUTS_FILENAME_PREFIX + a_item.Replace('_', ' ') + ".doc";
-            string path = "";
 
-            Logger.Print(sFuncName, $"Search SUTS {suts_name}");
-
+            string suts_name = Constants.SUTS_FILENAME_PREFIX + a_name.Replace('_', ' ') + ".doc";
+            string path = string.Empty;
 
             // Check the existence of the specified path.
-            if (!Directory.Exists(a_SUTSPath))
+            if (!Directory.Exists(a_path))
             {
-                Logger.Print(sFuncName, "Cannot find path \"" + a_SUTSPath + "\"; skipped.", Logger.PrintOption.Both);
-                return "";
+                Logger.Print(sFuncName, "Cannot find path \"" + a_path + "\"; skipped.", Logger.PrintOption.Both);
+                return string.Empty;
             }
 
-            // Collect the considered files stored in current folder.
-            string[] FileList = Directory.GetFiles(a_SUTSPath, Constants.SUTS_FILENAME_EXT);
-            foreach (string f in FileList)
+            path = Path.GetFullPath(a_path + "\\" + suts_name);
+
+            if (File.Exists(path))
             {
-                string docName = Path.GetFileName(f);
+                Logger.Print(sFuncName, $"SUTS was found in {suts_name}");
+                
+            }
+            else
+            {
+                path = String.Empty;
 
-                if (docName.Equals(suts_name))
-                {
-                    path = f;
-
-                    Logger.Print(sFuncName, $"SUTS is found in {path}");
-                    Logger.Print(sFuncName, $"SUTS found", Logger.PrintOption.Logger);
-                    break;
-                }
             }
 
             return path;
         }
-
-
-
 
 
 
@@ -478,189 +513,305 @@ namespace UTChecker
 
 
 
-        ///// <summary>
-        ///// 
-        ///// </summary>
-        ///// <param name="a_wordDoc"></param>
-        ///// <param name="findString"></param>
-        ///// <returns></returns>
-        //public string SUTS_FindSectionOfClass_C(Word.Document a_wordDoc, string findString)
-        //{
-        //    string sFuncName = "[FindSectionOfClassInSUTS_C]";
-
-        //    string sResult = Constants.StringTokens.ERROR;
-
-        //    if (findString.Equals(sPrevFindString))
-        //    {
-        //        return sPrevResult;
-        //    }
-
-        //    // Check the EXCEL app.
-        //    if (null == g_wordApp)
-        //    {
-        //        Logger.Print(sFuncName, ErrorMessage.WORD_APP_IS_NULL);
-        //        return Constants.StringTokens.ERROR;
-        //    }
-
-        //    if (null == a_wordDoc)
-        //    {
-        //        Logger.Print(sFuncName, ErrorMessage.SUTS_DOC_IS_NULL);
-        //        return Constants.StringTokens.ERROR;
-        //    }
 
 
-        //    try
-        //    {
-        //        object findText = findString;
-
-        //        Word.Range rng = a_wordDoc.Application.ActiveDocument.Content;
-        //        rng.Find.ClearFormatting();
-
-        //        if (rng.Find.Execute(ref findText,
-        //            true, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-        //            Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-        //            Type.Missing, Type.Missing))
-        //        {
-
-        //            sResult = "Found";
-        //        }
-        //        else
-        //        {
-        //            Logger.Print($"  - {findText} have not found in STUS.", Logger.PrintOption.File);
-        //        }
 
 
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Logger.Print(e.Message, Logger.PrintOption.File);
-        //    }
+        private static string _gSUTSChapter = string.Empty;
+        private static Object sutsLock = new object();
 
 
-        //    sPrevResult = sResult;
-        //    sPrevFindString = findString;
-
-        //    return sResult;
-        //}
-
-
-        public void testWord2(string wordPath, string a_classText)
+        public static string gSUTSChapter
         {
-            string sFuncName = "testWord2";
-            Word.Document a_wordDoc = null;
 
-
-            if (null == a_wordDoc)
+            get
             {
-                Logger.Print(sFuncName, $"Cannot found SUTS.");
-            }
-
-
-            try
-            {
-                a_wordDoc = OpenWordDocument(g_wordApp, wordPath);
-
-
-                object unit = Word.WdUnits.wdSentence;
-                object count = 1;
-
-                //Word.Range rng = wordDoc.Application.ActiveDocument.Content;
-
-                Logger.Print("Paragraphs " + a_wordDoc.Application.ActiveDocument.Paragraphs.Count.ToString(), Logger.PrintOption.Both);
-                Logger.Print("Sentences " + a_wordDoc.Application.ActiveDocument.Sentences.Count.ToString(), Logger.PrintOption.Both);
-                Logger.Print("Bookmarks " + a_wordDoc.Application.ActiveDocument.Bookmarks.Count.ToString(), Logger.PrintOption.Both);
-                Logger.Print("Sections " + a_wordDoc.Application.ActiveDocument.Sections.Count.ToString(), Logger.PrintOption.Both);
-                Logger.Print("Sections " + a_wordDoc.Paragraphs.Count.ToString(), Logger.PrintOption.File);
-                Logger.Print("TsOCs " + a_wordDoc.TablesOfContents.Count.ToString(), Logger.PrintOption.Both);
-
-
-                int ParagraphsCount = a_wordDoc.Application.ActiveDocument.Paragraphs.Count;
-
-                int tocStart = a_wordDoc.TablesOfContents[1].Range.Start;
-                int tocEnd = a_wordDoc.TablesOfContents[1].Range.End;
-                Logger.Print($"ToC from {tocStart} to {tocEnd}", Logger.PrintOption.File);
-
-
-                //// TOC
-                //foreach (Word.Paragraph p in a_wordDoc.TablesOfContents[1].Range.Paragraphs)
-                //{
-
-                //    Logger.Print($"{p.Range.Start,05} - {p.Range.End,05} - {p.Range.Text}", Logger.PrintOption.File);
-                //}
-
-
-                bool bToCFound = false;
-                string szTocString = String.Empty;
-                int startChapter = -1;
-
-                for (int i = 1; i<= ParagraphsCount; i++)
+                lock (sutsLock)
                 {
-                    Word.Paragraph paragraph = a_wordDoc.Application.ActiveDocument.Paragraphs[i];
-                    Word.Range r = paragraph.Range;
-                    Logger.Print($"{i,04} - {r.Start,05} - {r.End,05} - {r.Text}", Logger.PrintOption.File);
-
-
-                    if (r.Start >= tocStart && r.End <= tocEnd)
-                    {
-
-                        char[] charSeparators = new char[] { ' ', '\r', '\t' };
-                        string[] words = r.Text.Split(charSeparators, StringSplitOptions.RemoveEmptyEntries);
-
-
-                        if (a_classText.EndsWith(words[1]))
-                        {
-                            bToCFound = true;
-                            szTocString = $"{words[0]} - {words[1]}";
-
-                            Logger.Print($"Found {szTocString} in ToC", Logger.PrintOption.Both);
-                            startChapter = i;
-                            break;
-                        }
-
-                    }
+                    return _gSUTSChapter;
                 }
-
-                for (int j = startChapter; j <= ParagraphsCount; j++)
-                {
-
-                    int diff = 0;
-                    Word.Paragraph paragraph = a_wordDoc.Application.ActiveDocument.Paragraphs[j];
-                    Word.Range r = paragraph.Range;
-
-
-                    string title = r.Text.Trim(new char[] { '\r', '\n', '\u0015', ' ', '\t' });
-
-                    if (a_classText.EndsWith(title) &&
-                        r.Paragraphs[1].OutlineLevel == Word.WdOutlineLevel.wdOutlineLevel2)
-                    {
-
-                        Logger.Print($"Found {szTocString} in SUTS", Logger.PrintOption.Both);
-                    }
-
-                }
-
             }
-            catch (Exception ex)
+
+            set
             {
-                Logger.Print(ex.Message, Logger.PrintOption.File);
+                lock (sutsLock)
+                {
+                    _gSUTSChapter = value;
+                }
             }
-
-
-            a_wordDoc.Close();
-
-            ReleaseOfficeApps();
 
         }
 
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="a_wordDoc"></param>
+        /// <param name="a_classText"></param>
+        /// <param name="a_TDSExcelName"></param>
+        /// <returns></returns>
+        public void SUTS_FindSectionOfClass_JavaByThread(object obj)
+        {
+            string sFuncName = "[FindSectionOfClassInSUTS_Java]";
+
+            Tuple<Word.Document, string, string> items = obj as Tuple<Word.Document, string, string>;
+
+            Word.Document a_wordDoc = items.Item1 as Word.Document;
+            string a_classText = items.Item2 as string;
+            string a_TDSExcelName = items.Item3 as string;
+
+
+            // if current text is same as previous, then just return the previous result.
+            if (a_classText.Equals(sPrevFindString))
+            {
+                gSUTSChapter = sPrevResult;
+                return;
+            }
+
+            // Check Word.Application
+            if (null == g_wordApp)
+            {
+                Logger.Print(sFuncName, ErrorMessage.WORD_APP_IS_NULL);
+                gSUTSChapter = Constants.StringTokens.ERROR;
+                return;
+            }
+
+            // cHECK Word.Document
+            if (null == a_wordDoc)
+            {
+                Logger.Print(sFuncName, ErrorMessage.SUTS_DOC_IS_NULL);
+                gSUTSChapter = Constants.StringTokens.ERROR;
+                return;
+            }
+
+
+            // flag for ToC
+            bool bToCFound = false;
+
+            // flag for SUTS
+            bool bSUTSFound = false;
+
+            // flag that indicate the suts has beed found is used for a break from searching loop.
+            bool bSyntaxCheckingBreak = false;
+
+
+            string szTocString = String.Empty;
+
+            Word.Paragraphs lParagraphs = null;
+
+            try
+            {
+
+                object unit = Word.WdUnits.wdParagraph;
+                a_wordDoc.TablesOfContents[1].IncludePageNumbers = false;
+                a_wordDoc.TablesOfContents[1].HidePageNumbersInWeb = true;
+
+
+                // find class Name in ToC
+                foreach (Word.Hyperlink hl in a_wordDoc.TablesOfContents[1].Range.Hyperlinks)
+                {
+
+                    Word.Bookmark wb = a_wordDoc.Bookmarks[hl.SubAddress];
+
+                    //Logger.Print($"1:{hl.Name}, 2:{hl.Range.Text} 4:{wb.Range.Text}", Logger.PrintOption.File);
+
+                    string replaceString = hl.Range.Text.Replace('\t', ' ').Replace('\r', ' ');
+
+                    //// get chapter
+                    string chapter = replaceString.Substring(0, replaceString.IndexOf(' ')).Trim();
+                    string header = replaceString.Substring(chapter.Length).Trim();
+
+
+                    string wbString = new string(wb.Range.Text.Where(c => !char.IsControl(c)).ToArray()).Trim();
 
 
 
+                    if (a_classText.Equals(header) && wbString.Equals(header))
+                    {
+                        bToCFound = true;
+                        szTocString = $"{chapter} - {header}";
+                        lParagraphs = wb.Range.Paragraphs;
+                        break;
+                    }
+
+
+                }
 
 
 
+                // return Error if the class cannot be found in ToC
+                if (bToCFound == false)
+                {
+                    Logger.Print($"  - {a_classText} has not fould in the table of contents of SUTS", Logger.PrintOption.Both);
+
+                    sPrevResult = Constants.StringTokens.ERROR;
+                    sPrevFindString = a_classText;
+                    gSUTSChapter = Constants.StringTokens.ERROR;
+                    return;
+                }
 
 
+
+                // get paragraph from above result.
+                Word.Range range = lParagraphs.First.Range;
+
+                // revmoe control character.
+                string sz = new string(range.Text.Where(c => !char.IsControl(c)).ToArray());
+                string title = sz.Trim();
+
+
+                if (a_classText.Equals(title) &&
+                    lParagraphs.OutlineLevel == Word.WdOutlineLevel.wdOutlineLevel2)
+                {
+
+                    bSyntaxCheckingBreak = true;
+
+                    // get next one of paragraph
+                    Word.Range nextPara = range.Next(unit);
+
+                    //Logger.Print($"({r.Paragraphs.Count}) - \"{r.Text}\"", Logger.PrintOption.File);
+
+                    for (int index = 0; index < SUTS_Pattern_JAVA.Length; index++)
+                    {
+
+                        string input = nextPara.Text;
+
+                        string output = new string(input.Where(c => !char.IsControl(c)).ToArray());
+                        string s = output.Trim();
+
+
+                        if (index == 1)
+                        {
+                            string _TDSExcelName = a_TDSExcelName;
+
+                            // get file name 
+                            int ind = _TDSExcelName.LastIndexOf('\\');
+                            if (ind > 0)
+                            {
+                                _TDSExcelName = _TDSExcelName.Remove(0, ind + 1);
+                            }
+
+                            string docS = SUTS_Pattern_JAVA[1] + _TDSExcelName;
+
+                            if (docS.Equals(s))
+                            {
+                                bSUTSFound = true;
+                            }
+                            else
+                            {
+                                bSUTSFound = false;
+                                Logger.Print($" - There are some different words between Pattern and SUTS. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   PATN: {docS}", Logger.PrintOption.File);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+
+                                break;
+                            }
+                        }
+                        else if (index == 4)
+                        {
+                            if (s.StartsWith("adb shell") || (s.StartsWith("N/A")))
+                            {
+                                bSUTSFound = true;
+
+                            }
+                            else
+                            {
+                                bSUTSFound = false;
+                                Logger.Print($" - The content of Test script shall be N/A or starting with ADB shell. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+
+                                break;
+                            }
+                        }
+                        else if (index == 6)
+                        {
+
+                            if (String.IsNullOrEmpty(s))
+                            {
+                                bSUTSFound = true;
+                            }
+                            else
+                            {
+                                index++;
+
+                                if (s.Contains(SUTS_Pattern_JAVA[index]))
+                                {
+                                    bSUTSFound = true;
+                                }
+                                else
+                                {
+                                    bSUTSFound = false;
+                                    Logger.Print($" - The format of Section {a_classText} shall be checked. ({index})", Logger.PrintOption.Both);
+                                    //Logger.Print($"   PATN: {SUTS_Pattern_JAVA[index]}", Logger.PrintOption.File);
+                                    //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+                                    break;
+                                }
+                            }
+
+                        }
+                        else
+                        {
+
+                            if (s.Contains(SUTS_Pattern_JAVA[index]))
+                            {
+                                bSUTSFound = true;
+
+                                // the final content of section
+                                if (s.StartsWith(SUTS_Pattern_JAVA[SUTS_Pattern_JAVA.Length - 1]))
+                                {
+                                    break;
+                                }
+
+                            }
+                            else
+                            {
+                                bSUTSFound = false;
+                                Logger.Print($" - The format of Section {a_classText} shall be check. ({index})", Logger.PrintOption.Both);
+                                //Logger.Print($"   PATN: {SUTS_Pattern_JAVA[index]}", Logger.PrintOption.File);
+                                //Logger.Print($"   SUTS: {s}", Logger.PrintOption.File);
+                                break;
+                            }
+
+                        }
+
+                        // get next
+                        nextPara = nextPara.Next(unit);
+
+                    }
+
+                }
+                else
+                {
+                    bSUTSFound = false;
+
+                }
+
+
+
+            }
+            catch (Exception ex)
+            {
+                bSUTSFound = false;
+                Logger.Print(sFuncName, ex.Message, Logger.PrintOption.File);
+                gSUTSChapter = Constants.StringTokens.ERROR;
+                return;
+
+            }
+
+
+            if (false == bSUTSFound && false == bSyntaxCheckingBreak)
+            {
+                Logger.Print($"  - The content of section {a_classText} have not found.", Logger.PrintOption.Both);
+                szTocString = Constants.StringTokens.ERROR;
+            }
+
+            sPrevResult = szTocString;
+            sPrevFindString = a_classText;
+            gSUTSChapter = szTocString;
+
+            return;
+
+        }
 
 
     }

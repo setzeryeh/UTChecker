@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Excel = Microsoft.Office.Interop.Excel;
@@ -15,25 +16,20 @@ namespace UTChecker
 {
     public partial class UTChecker
     {
-        private MainForm g_MF = null;
-
-        public TimeSpan TimeSpan { get; private set; }
 
         /// <summary>
         /// Constructor for UTChecker
         /// </summary>
-        public UTChecker(MainForm mf)
+        public UTChecker()
         {
-
-            g_MF = mf;
-
-            // create a variable for record the path setting
-            g_FilePathSetting = new EnvrionmentSetting();
 
             // init a task of backgroundworker for UTChecker
             InitializeBackgroundWorkerForUTChecker();
 
+
         }
+
+
 
         #region BackgroundWorker for UT Checker
 
@@ -44,29 +40,24 @@ namespace UTChecker
         {
             g_bwUTChecker = new BackgroundWorker();
 
-            g_bwUTChecker.WorkerReportsProgress = true;
-            g_bwUTChecker.WorkerSupportsCancellation = true;
+            //g_bwUTChecker.WorkerReportsProgress = true;
+            //g_bwUTChecker.WorkerSupportsCancellation = true;
             g_bwUTChecker.DoWork += new DoWorkEventHandler(bwUTChecker_DoWork);
-            g_bwUTChecker.ProgressChanged += new ProgressChangedEventHandler(bwUTChecker_ProgressChanged);
+            //g_bwUTChecker.ProgressChanged += new ProgressChangedEventHandler(bwUTChecker_ProgressChanged);
             g_bwUTChecker.RunWorkerCompleted += new RunWorkerCompletedEventHandler(bwUTChecker_RunWorkerCompleted);
         }
 
-        /// <summary>
-        /// This method start the backgroundWorker to work.
-        /// </summary>
-        public void Run()
-        {
-            g_bwUTChecker.RunWorkerAsync();
-        }
 
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public void Stop()
-        {
-            g_bwUTChecker.CancelAsync();
-        }
+        ///// <summary>
+        ///// 
+        ///// </summary>
+        //public void Stop()
+        //{
+        //    g_bwUTChecker.CancelAsync();
+        //}
+
+
 
         /// <summary>
         /// An event which triggers the RunTDSParser
@@ -78,19 +69,21 @@ namespace UTChecker
 
             // Get the BackgroundWorker that raised this event.
             BackgroundWorker worker = sender as BackgroundWorker;
+
+            // call RunUTchecker
             e.Result = RunUTChecker();
+
         }
 
 
-        /// <summary>
-        /// bwUTChecker_ProgressChanged
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void bwUTChecker_ProgressChanged(object sender, ProgressChangedEventArgs e)
-        {
-            //this.progressBarUTChecker.Value = e.ProgressPercentage;
-        }
+        ///// <summary>
+        ///// bwUTChecker_ProgressChanged
+        ///// </summary>
+        ///// <param name="sender"></param>
+        ///// <param name="e"></param>
+        //private void bwUTChecker_ProgressChanged(object sender, ProgressChangedEventArgs e)
+        //{
+        //}
 
 
         /// <summary>
@@ -100,29 +93,61 @@ namespace UTChecker
         /// <param name="e"></param>
         private void bwUTChecker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
-            if (this.RunUTCheckerBy == RunBy.CommandLine)
+            
+            if (e.Error != null)
             {
-                Environment.ExitCode = 0;
-                Environment.Exit(Environment.ExitCode);
+                MessageBox.Show(e.Error.Message);
+            }
+            else if (e.Cancelled)
+            {
+                MessageBox.Show("No support Cancel!");
+            }
+
+            int result = (int)e.Result;
+
+            if (result == -1)
+            {
+                if (this.Mode == RunMode.CommandLine)
+                {
+                    this.ReturnCode = RETURN_CODE.ERROR_CMD;
+                }
+                else
+                {
+                    this.ReturnCode = RETURN_CODE.ERROR_USER;
+                }
             }
             else
             {
-                string msg = "Done";
-                if ((int)e.Result == -1)
-                {
-                    msg = "Error";
-                }
-                MessageBox.Show(msg);
-                Logger.ClearProgress();
+                this.ReturnCode = RETURN_CODE.NORMAL;
             }
+
+
+            Logger.ClearProgress();
+
+
+            // send completed event to MainForm
+            UTCheckerEvent args = new UTCheckerEvent();
+            args.ReturnCode = this.ReturnCode;
+            args.Message = "Completed Event";
+            args.Mode = this.Mode;
+
+            OnCompletedEvent(args);
+
         }
-
-
 
         #endregion
 
 
-        
+
+        /// <summary>
+        /// This method start the backgroundWorker to work.
+        /// </summary>
+        public void Run()
+        {
+            g_bwUTChecker.RunWorkerAsync();
+        }
+
+
         /// <summary>
         /// Main routine for UTChecker
         /// </summary>
@@ -166,20 +191,23 @@ namespace UTChecker
 
             CultureInfo cultureEN = new CultureInfo("en-US");
 
-            // -------------------------------------------------------------------------------
-            // update logger / progress
-            // -------------------------------------------------------------------------------
-            Logger.ClearAll();
 
             // record the time at Start.
             DateTime l_startTime = DateTime.Now;
             Logger.Print(sFuncName, l_startTime.ToString(cultureEN), Logger.PrintOption.Both);
 
 
-            // initial all variables
-            InitializeVariable();
+            // -------------------------------------------------------------------------------
+            // update logger / progress
+            // -------------------------------------------------------------------------------
+            Logger.ClearAll();
+            
 
-
+            if (this.Mode == RunMode.CommandLine)
+            {
+                Logger.Print("Command Line mode, Turn off Message.", Logger.PrintOption.Logger);
+                Logger.Enable = false;
+            }
 
 
             // -------------------------------------------------------------------------------
@@ -189,24 +217,21 @@ namespace UTChecker
             
 
 
-
             // check all of paths.
             if (!CheckEnvironmentSetting())
             {
-                if (this.RunUTCheckerBy == UTChecker.RunBy.CommandLine)
-                {
-                    Environment.ExitCode = -1;
-                    Environment.Exit(Environment.ExitCode);
-                }
-                else
-                {
-                    Logger.Print(sFuncName, "Path Error", Logger.PrintOption.Both);
-                    this.Stop();
-                    return -1;
-                }
-                 
+                Logger.Print(sFuncName, "Path Error", Logger.PrintOption.Both);
+
+                return -1;
+               
             }
 
+            // change process log to the path of output
+            Logger.PrepareProcessLog(g_sOutputPath);
+
+
+            // initial all variables
+            InitializeVariable();
 
 
             // -------------------------------------------------------------------------------
@@ -225,7 +250,6 @@ namespace UTChecker
             }
 
 
-
             // -------------------------------------------------------------------------------
             // update logger / progress
             // -------------------------------------------------------------------------------
@@ -233,10 +257,8 @@ namespace UTChecker
 
 
 
-
-
             // Read the name of modules from Summary Rereport.
-            List<string> a_lsModuleNameInSmmary = ReadAllModuleNamesFromExcel(g_sSummaryReport);
+            Dictionary<string, int> a_lsModuleNameInSmmary = ReadAllModuleNamesFromExcel(g_sSummaryReport);
             if (a_lsModuleNameInSmmary == null || a_lsModuleNameInSmmary.Count == 0)
             {
                 Logger.Print(sFuncName, "The modules of name can't be found in Summary Template.", Logger.PrintOption.Both);
@@ -250,40 +272,9 @@ namespace UTChecker
             Logger.UpdateProgress(8);
 
 
-
-
             // prepare summary report
             string sSummaryReportPath = PrepareSummaryReport(g_sSummaryReport, g_sOutputPath);
-
-
             Logger.Print($"Total {g_lsModules.Count} module(s) would be checked.", Logger.PrintOption.Both);
-
-
-
-
-            //Logger.Print($"", Logger.PrintOption.Both);
-
-
-            //string doc_vector = @"D:\SVN\Traceability\05_Detailed_Design\2_SUTS\NUGEN Software Unit Test Specification Document of 10417 Communication.doc";
-
-            //string doc_basal = @"D:\SVN\Traceability\05_Detailed_Design\2_SUTS\NUGEN Software Unit Test Specification Document of Basal Delivery.doc";
-
-
-            //testWord(pp);
-
-
-            //testWord2(doc_basal, "BasalUtil");
-
-            //return -1;
-
-            //Logger.Print($"", Logger.PrintOption.Both);
-
-            //testWord2(pp, "BgmCommunication");
-
-            //Logger.Print($"", Logger.PrintOption.Both);
-
-            //testWord2(pp, "BgmSecificCommandFactory");
-
 
 
             // -------------------------------------------------------------------------------
@@ -293,11 +284,24 @@ namespace UTChecker
             int value = 10;
 
 
+
             try
             {
 
                 foreach (string sItem in g_lsModules)
                 {
+
+                    // record start time
+                    DateTime _moduleTiemStart = DateTime.Now;
+
+
+                    // Write the spliter for reading the error log file easily.
+                    // (This section must be located behind the remove-error-file section. Otherwise the message will be written to the previous error log file.)
+
+                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
+                    Logger.Print(sItem, Logger.PrintOption.Both);
+                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
+
 
                     // -------------------------------------------------------------------------------
                     // update logger / progress
@@ -313,7 +317,8 @@ namespace UTChecker
                     // for report
                     sOutputFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".xlsx";
 
-                    // for Error log
+
+                    // get the file name for Log file and set to Logger
                     g_sErrorLogFile = g_sOutputPath + Constants.REPORT_PREFIX + sItem + ".log";
                     Logger.FileName = g_sErrorLogFile;
 
@@ -371,27 +376,34 @@ namespace UTChecker
                     #endregion
 
 
-                    // Write the spliter for reading the error log file easily.
-                    // (This section must be located behind the remove-error-file section. Otherwise the message will be written to the previous error log file.)
-                    DateTime _startTime = DateTime.Now;
-                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
-                    Logger.Print(sItem, Logger.PrintOption.Both);
-                    Logger.Print("---------------------------------------------------------------", Logger.PrintOption.Both);
 
-                   
                     try
                     {
 
-                        // Prepare a dummy output report in case the flow is aborted due to a failure.
+                        //
+                        // 1. Create a thread to collect Test Logs (By thread)
+                        //
+                        var testLogItems = new Tuple<string, string>(sItem, g_sTestLogPath);
+                        Thread collectThread = new Thread(new ParameterizedThreadStart(CollectTestLogs));
+                        collectThread.Priority = ThreadPriority.AboveNormal;
+                        //collectTestLogThread.IsBackground = true;
+                        collectThread.Start(testLogItems);
+
+
+
+                        //
+                        // 2. Prepare a dummy output report in case the flow is aborted due to a failure.
+                        //
                         if (!PrepareDummayOutputReport(sOutputFile))
                         {
                             bIsErrorEverOccurred = true;
+                            Logger.Print($"PrepareDummayOutputReport Fail.", Logger.PrintOption.Both);
                             continue;
                         }
-     
+
 
                         //
-                        // Search and collect all TDS files.
+                        // 3. Collect all TDS files.
                         //
                         g_lsTDSFiles = CollectTDSFiles(sTDSPath, sListFileForTDS);
                         if ((null == g_lsTDSFiles) || (0 == g_lsTDSFiles.Count))
@@ -401,25 +413,28 @@ namespace UTChecker
                         }
 
 
-                        
                         //
-                        // Search Test Logs
+                        // 4. Search SUTS
                         //
-                        g_lsTestLogs = CollectTestLogs(sItem, g_sTestLogPath);
-                        if ((null == g_lsTestLogs) || (0 == g_lsTestLogs.Count))
+                        g_sSUTSDocumentPath = SearchSUTSDocumentPath(sItem, g_sSUTSPath);
+                        if (g_sSUTSDocumentPath == String.Empty)
                         {
-                            Logger.Print($"Test log file(s) not found.", Logger.PrintOption.Both);
+                            Logger.Print($"The SUTS of {sItem} have not found.", Logger.PrintOption.Both);
                         }
 
 
                         //
-                        // Search SUTS
+                        // 5. Wait the task "collect test log" done (By thread)
                         //
-                        g_sSUTSDocumentPath = SearchSUTSDocumentPath(sItem, g_sSUTSPath);
-                        if ("" == g_sSUTSDocumentPath)
-                        {
-                            Logger.Print($"SUTS not found.", Logger.PrintOption.Both);
 
+                        collectThread.Join();
+
+
+                        //var testLogItems = new Tuple<string, string>(sItem, g_sTestLogPath);
+                        //CollectTestLogs(testLogItems);
+                        if ((null == g_lsTestLogs) || (0 == g_lsTestLogs.Count))
+                        {
+                            Logger.Print($"Test log file(s) not found.", Logger.PrintOption.Both);
                         }
 
 
@@ -428,7 +443,6 @@ namespace UTChecker
                         // -------------------------------------------------------------------------------
                         Logger.UpdateProgress(value);
                         value = value < 90 ? (value + (diff / 2)) : 90;
-
 
 
                         //
@@ -447,11 +461,11 @@ namespace UTChecker
                         CountAndMarkResults();
 
 
+
                         // -------------------------------------------------------------------------------
                         // update logger / progress
                         // -------------------------------------------------------------------------------
                         Logger.Print("Write the result to report.");
-
 
 
                         // Write the results to as an overall lookup table.
@@ -461,17 +475,25 @@ namespace UTChecker
                         }
 
 
-                        //
-                        // write summary report
-                        //
-                        Logger.Print("Writing result to Summary Reports.");
 
-                        int index = GetModuleId(sItem, a_lsModuleNameInSmmary);
-                        if (!WriteSummaryReport(sSummaryReportPath, g_tTestCaseTable, index))
+                        int index = -1;
+                        if (a_lsModuleNameInSmmary.TryGetValue(sItem.Replace("_", " "), out index))
                         {
-                            Logger.Print(sFuncName, "Error occurred when writeing data into Summary report.", Logger.PrintOption.Both);
-                            continue;
+
+                            // Write the overall result of current module
+                            if (!WriteSummaryReport(sSummaryReportPath, g_tTestCaseTable, index))
+                            {
+                                Logger.Print(sFuncName, "Error occurred when writeing data into Summary report.", Logger.PrintOption.Both);
+                                bIsErrorEverOccurred = true;
+                            }
                         }
+                        else
+                        {
+                            Logger.Print(sFuncName, $"{sItem} has no found in Summary Template", Logger.PrintOption.Both);
+                            bIsErrorEverOccurred = true;
+                        }
+
+
 
                     }
                     finally
@@ -479,7 +501,7 @@ namespace UTChecker
 
                         #region Show the result when current module has checked.
 
- 
+
                         Logger.Print("", "---------------------------------------------------------------");
                         Logger.Print("", $" {sItem} Module Summary:");
                         Logger.Print("", "---------------------------------------------------------------");
@@ -538,9 +560,10 @@ namespace UTChecker
                         Logger.Print("  Total # of SUTS issues:", g_tTestCaseTable.dSUTSIssueCount.ToString());
 
                         Logger.Print("  Total # of NG entry(s) found:", g_tTestCaseTable.dNGEntryCount.ToString());
-                        
+
 
                         #endregion
+
 
                         #region Accumulate the counts.
 
@@ -573,13 +596,14 @@ namespace UTChecker
 
                         #endregion
 
+
                     }
 
 
                     // record elapsed time for each module.
-                    DateTime _finishTime = DateTime.Now;
-                    TimeSpan intv = _finishTime - _startTime;
-                    Logger.Print($"Elapsed Time: {intv.Hours}:{intv.Minutes}:{intv.Seconds}", Logger.PrintOption.Both);
+                    DateTime _moduleTiemEnd = DateTime.Now;
+                    TimeSpan intv = _moduleTiemEnd - _moduleTiemStart;
+                    Logger.Print($"Elapsed Time: {intv.ToString()}", Logger.PrintOption.Both);
 
 
 
@@ -593,7 +617,6 @@ namespace UTChecker
             }
             finally
             {
-
 
                 #region Show Overall Summary Info
 
@@ -632,6 +655,9 @@ namespace UTChecker
                 #endregion
 
 
+
+
+
                 // release Office.
                 ReleaseOfficeApps();
 
@@ -640,13 +666,13 @@ namespace UTChecker
                 // Show ending message.
                 if (bIsErrorEverOccurred)
                 {
-                    Logger.Print("Failed!");
+                    Logger.Print(sFuncName, "Failed!", Logger.PrintOption.Both);
                 }
                 else
                 {
 
-                    Logger.Print("Update path setting to " + UTCheckerSetting.FileName);
-                    WriteEnvironmentSetting();
+                    //Logger.Print("Update path setting to " + UTCheckerSetting.FileName);
+                    //WriteEnvironmentSetting();
 
                 }
             }
@@ -659,7 +685,7 @@ namespace UTChecker
 
             // print Elapsed Time
             TimeSpan interval = l_finishTime - l_startTime;
-            Logger.Print($"Elapsed Time: {interval.Hours}:{interval.Minutes}:{interval.Seconds}", Logger.PrintOption.Both);
+            Logger.Print($"Elapsed Time: {interval.Hours}:{interval.Minutes}:{interval.Seconds}:{interval.Milliseconds}", Logger.PrintOption.Both);
 
 
 
@@ -667,7 +693,6 @@ namespace UTChecker
             // update logger / progress
             // -------------------------------------------------------------------------------
             Logger.UpdateProgress(100);
-
 
             return 0;
         }
@@ -683,7 +708,7 @@ namespace UTChecker
         {
             string sFuncName = "[InitializeVariable]";
 
-            
+
             try
             {
                 foreach (Process proc in Process.GetProcessesByName("EXCEL"))
@@ -700,12 +725,8 @@ namespace UTChecker
             {
                 MessageBox.Show(ex.Message);
             }
-            
 
 
-
-            // init the list of modules
-            g_lsModules = new List<string>();
 
             // get the handler for excel application
             g_excelApp = new Excel.Application
@@ -717,6 +738,8 @@ namespace UTChecker
             g_wordApp = new Word.Application();
             g_wordApp.DisplayAlerts = Microsoft.Office.Interop.Word.WdAlertLevel.wdAlertsNone;
 
+            // init the list of modules
+            g_lsModules = new List<string>();
 
             // Initialize a list for TDS files
             g_lsTDSFiles = new List<string>();
@@ -727,10 +750,32 @@ namespace UTChecker
 
             Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
 
+
             return true;
         }
 
 
+
+        public bool UpdateEnvironmentSetting(EnvrionmentSetting env)
+        {
+
+            g_FilePathSetting = env;
+
+            g_sModuleListFile = env.listFile;           // list file
+            g_sTDSPath = env.tdsPath;                    // tds path
+            g_sOutputPath = env.outputPath;              // output path
+            g_sTemplateFile = env.reportTemplate; ; ;    // template file
+            g_sSummaryReport = env.summaryTemplate;      // summary templat
+            g_sTestLogPath = env.testlogPath;
+            g_sSUTSPath = env.sutsPath;
+            g_sReferenceListsPath = env.referenceListsPath; // reference lists path
+            g_sSUTRRPath = env.sutrrPath;
+
+            this.Mode = RunMode.User;
+
+            return true;
+
+        }
 
 
         /// <summary>
@@ -738,23 +783,26 @@ namespace UTChecker
         /// </summary>
         /// <param name="commandline"></param>
         /// <returns></returns>
-        public bool UpdateEnvironmentSetting()
+        public bool UpdateEnvironmentSetting(string[] args)
         {
             string sFuncName = "[UpdateEnvironmentSetting]";
 
-            EnvrionmentSetting ps = new EnvrionmentSetting();
-
             bool bDone = false;
 
-            char[] delimiter = new char[] { ' ', '"' };
-            string[] args = Environment.CommandLine.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
+            EnvrionmentSetting ps = new EnvrionmentSetting();
 
-
+            //char[] delimiter = new char[] { ' ', '"' };
+            //string[] args = Environment.CommandLine.Split(delimiter, StringSplitOptions.RemoveEmptyEntries);
 
             if (args.Length == Constants.CommandArguments.Match)
             {
 
+                // update mode
+                this.Mode = RunMode.CommandLine;
+
+                //
                 // update setting to textbox
+                //
                 ps.listFile = args[1];
                 ps.tdsPath = args[2];
                 ps.outputPath = args[3];
@@ -763,26 +811,30 @@ namespace UTChecker
                 ps.testlogPath = args[6];
                 ps.sutsPath = args[7];
 
-                g_FilePathSetting = ps;
-                UpdatePathEvent(this, null);
+                // update to global variable
+                this.g_FilePathSetting = ps;
 
-
-                this.RunUTCheckerBy = RunBy.CommandLine;
-
-                Logger.Print(sFuncName, "Update the path setting from Command Line.");
+                // event
+                UTCheckerEvent eventArgs = new UTCheckerEvent();
+                eventArgs.Path = this.g_FilePathSetting;
+                eventArgs.Mode = this.Mode;
+                OnUpdatePathEvent(eventArgs);
 
                 bDone = true;
+
+                Logger.Print(sFuncName, "Update the path setting from Command Line.");
 
             }
             else
             {
 
-                Logger.Print(sFuncName, "Invalid Arguments, Check setting file.");
+
+                // update mode
+                this.Mode = RunMode.User;
 
                 if (File.Exists(UTCheckerSetting.FileName))
                 {
                     string[] lines = System.IO.File.ReadAllLines(@"UTChecker.setting");
-
 
                     foreach (string s in lines)
                     {
@@ -813,7 +865,6 @@ namespace UTChecker
                                 else if (setting[1].Equals(UTCheckerSetting.SummaryTemplate))
                                 {
                                     ps.summaryTemplate = setting[2];
-
                                 }
                                 else if (setting[1].Equals(UTCheckerSetting.TestLogPath))
                                 {
@@ -831,9 +882,6 @@ namespace UTChecker
                                 {
                                     ps.sutrrPath = setting[2];
                                 }
-
-
-
                                 else
                                 {
 
@@ -844,19 +892,27 @@ namespace UTChecker
                     }
 
                     g_FilePathSetting = ps;
-                    UpdatePathEvent(this, null);
+
+                    // event
+                    UTCheckerEvent eventArgs = new UTCheckerEvent();
+                    eventArgs.Path = this.g_FilePathSetting;
+                    eventArgs.Mode = this.Mode;
+                    OnUpdatePathEvent(eventArgs);
+
+
+                    bDone = true;
 
                     Logger.Print(sFuncName, "Update the path setting from UTChecker.setting");
 
-                    bDone = true;
                 }
                 else
                 {
-                    Logger.Print(sFuncName, "The path settings haven't been updated.");
                     bDone = true;
+
+                    Logger.Print(sFuncName, "The path settings haven't been updated.");
+
                 }
 
-                this.RunUTCheckerBy = RunBy.User;
             }
 
 
@@ -873,9 +929,8 @@ namespace UTChecker
         {
             string sFuncName = "[CheckEnvironmentSetting]";
 
-            EnvrionmentSetting fp = g_MF.GetPath();
 
-            g_FilePathSetting = fp;
+            EnvrionmentSetting fp = g_FilePathSetting;
 
             g_sModuleListFile =  fp.listFile;           // list file
             g_sTDSPath = fp.tdsPath;                    // tds path
@@ -883,8 +938,8 @@ namespace UTChecker
             g_sTemplateFile = fp.reportTemplate; ; ;    // template file
             g_sSummaryReport = fp.summaryTemplate;      // summary templat
             g_sTestLogPath = fp.testlogPath;
-            g_sReferenceListsPath = fp.referenceListsPath; // reference lists path
             g_sSUTSPath = fp.sutsPath;
+            g_sReferenceListsPath = fp.referenceListsPath; // reference lists path
             g_sSUTRRPath = fp.sutrrPath;
 
 
@@ -908,16 +963,33 @@ namespace UTChecker
             // Check the existence of the input & output paths.
             if (!Directory.Exists(g_sTDSPath))
             {
-                Logger.Print(sFuncName, "Cannot find the TDS path: " + g_sTDSPath);
+                Logger.Print(sFuncName, "Cannot find the path of TDS: " + g_sTDSPath);
                 return false;
             }
 
             // check the path of test logs.
             if (!Directory.Exists(g_sTestLogPath))
             {
-                Logger.Print(sFuncName, "Cannot find the output path: " + g_sTestLogPath);
+                Logger.Print(sFuncName, "Cannot find the path of Test Log: " + g_sTestLogPath);
                 return false;
             }
+
+
+            // check the path of SUTS
+            if (!Directory.Exists(g_sSUTSPath))
+            {
+                Logger.Print(sFuncName, "Cannot find the path of SUTS: " + g_sSUTSPath);
+                return false;
+            }
+
+            // check the path of output
+            if (!Directory.Exists(g_sOutputPath))
+            {
+                Logger.Print(sFuncName, "Cannot find the path for output: " + g_sTestLogPath);
+                return false;
+            }
+
+
 
             //// check the path of reference
             //if (!Directory.Exists(g_sReferenceListsPath))
@@ -926,32 +998,12 @@ namespace UTChecker
             //    return false;
             //}
 
-
-            // check the path of SUTS
-            if (!Directory.Exists(g_sSUTSPath))
-            {
-                Logger.Print(sFuncName, "Cannot find the SUTS path: " + g_sSUTSPath);
-                return false;
-            }
-
             //// check the path of SUTRR
             //if (!Directory.Exists(g_sSUTRRPath))
             //{
             //    Logger.Print(sFuncName, "Cannot find the SUTRR path: " + g_sSUTRRPath);
             //    return false;
             //}
-
-
-
-            // check the path of output
-            if (!Directory.Exists(g_sOutputPath))
-            {
-                Directory.CreateDirectory(g_sOutputPath);
-
-                Logger.Print(sFuncName, "Create directory for output : " + g_sOutputPath);
-                return false;
-            }
-
 
 
 
@@ -983,10 +1035,10 @@ namespace UTChecker
                return false;
             }
 
+
             Logger.Print(sFuncName, "Done", Logger.PrintOption.Both);
 
             return true;
-
         }
 
 
@@ -999,7 +1051,7 @@ namespace UTChecker
         {
             //string sFuncName = "[WriteEnvironmentSetting]";
 
-            if (this.RunUTCheckerBy == RunBy.CommandLine)
+            if (this.Mode == RunMode.CommandLine)
             {
                 return false;
             }
@@ -1051,6 +1103,9 @@ namespace UTChecker
 
             return true;
         }
+
+
+
 
 
 
@@ -1132,6 +1187,8 @@ namespace UTChecker
                 {
                     Logger.Print(sFuncName, "No-line is loaded from " + a_sInFile);
                 }
+
+
             }
             catch (Exception ex)
             {
@@ -1173,7 +1230,9 @@ namespace UTChecker
                     Logger.Print(sFuncName, "Cannot find " + g_sTemplateFile);
                     return false;
                 }
+
                 File.Copy(g_sTemplateFile, a_sOutputFile);
+
             }
             catch (Exception e)
             {
@@ -1483,7 +1542,5 @@ namespace UTChecker
                 Logger.Print(sFuncName, e.ToString());
             }
         }
-
-
     }
 }

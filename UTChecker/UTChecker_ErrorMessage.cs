@@ -8,8 +8,31 @@ namespace UTChecker
 {
     public partial class UTChecker
     {
+        /// <summary>
+        /// Return Code
+        /// </summary>
+        public static class RETURN_CODE
+        {
+            /// <summary>
+            /// Normal Finish
+            /// </summary>
+            public const int NORMAL = 0;
+
+            /// <summary>
+            /// Error Occurred in User Mode
+            /// </summary>
+            public const int ERROR_USER = -1;
+
+            /// <summary>
+            /// Error Occurred in Command Line Mode
+            /// </summary>
+            public const int ERROR_CMD  = -2;
+
+        }
+
         public static class ErrorMessage
         {
+
             // for office
             public const string EXCEL_APP_IS_NULL = "The handler of EXCEL Application is null.";
             public const string WORD_APP_IS_NULL = "The handler of WORD Application is null.";

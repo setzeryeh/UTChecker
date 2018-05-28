@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Excel = Microsoft.Office.Interop.Excel;
 using Word = Microsoft.Office.Interop.Word;
@@ -211,8 +212,24 @@ namespace UTChecker
                 g_excelApp.DisplayAlerts = false; // show no alert while closing the file
 
 
-                // clear previous result.
-                SUTS_ClearPreviousResult();
+
+
+                if (a_SUTSDocPath != String.Empty)
+                {
+                    wordDoc = OpenWordDocument(g_wordApp, a_SUTSDocPath);
+                    if (null == wordDoc)
+                    {
+                        Logger.Print(sFuncName, $"Error occurred when Open SUTS.");
+                    }
+
+                    // clear previous result.
+                    SUTS_ClearPreviousResult();
+
+                }
+                else
+                {
+                    Logger.Print(sFuncName, $"No SUTS, Skipped!");
+                }
 
 
                 // Read data from each TDS file.
@@ -236,11 +253,7 @@ namespace UTChecker
                         continue;
                     }
 
-                    wordDoc = OpenWordDocument(g_wordApp, a_SUTSDocPath);
-                    if (null == wordDoc)
-                    {
-                        Logger.Print(sFuncName, $"Cannot found SUTS.");
-                    }
+                   
 
 
                     try
@@ -279,12 +292,21 @@ namespace UTChecker
                     }
                     finally
                     {
-                        // Close the TDS file.
-                        excelBook.Close(false, Type.Missing, Type.Missing);
-
-                        wordDoc.Close((Object)Word.WdSaveOptions.wdDoNotSaveChanges, Type.Missing, Type.Missing);
+                        if (excelBook != null)
+                        {
+                            // Close the TDS file.
+                            excelBook.Close(false, Type.Missing, Type.Missing);
+                        }
                     }
                 }
+
+
+                if (wordDoc != null)
+                {
+                    wordDoc.Close((Object)Word.WdSaveOptions.wdDoNotSaveChanges, Type.Missing, Type.Missing);
+                }
+
+
             }
             catch (SystemException ex)
             {
@@ -309,10 +331,9 @@ namespace UTChecker
 
 
 
-
-
-
         #region Java Group
+
+
 
         /// <summary>
         /// 
@@ -392,9 +413,15 @@ namespace UTChecker
 
             TestType eTestType;
             TestMeans eTestMeans;
-            TestLog eTestLog;
+            TestLog eTestLog = null;
 
             string sMsgHeader, sMsg;
+
+            Thread searchThread = null;
+
+
+
+            string sChapterInSUTS = Constants.StringTokens.ERROR;
 
             try
             {
@@ -417,10 +444,14 @@ namespace UTChecker
                     return ++dErrorCount;
                 }
 
+
                 // Extract the (TC label, TC func) pairs and note.
                 int dFirstRow = 2;
                 for (int i = dFirstRow; i <= excelRange.Rows.Count; i++)
                 {
+
+                    
+
                     // Ignore the empty row.
                     if ((null == (excelRange.Cells[i, 1] as Excel.Range).Value2) &&
                         (null == (excelRange.Cells[i, 2] as Excel.Range).Value2) &&
@@ -434,6 +465,7 @@ namespace UTChecker
                         break;
                     }
 
+                    
                     sMsgHeader = sFuncName + ":" + Constants.StringTokens.MSG_BULLET + " Row " + i.ToString() + ":";
 
                     // Read data from the table.
@@ -443,11 +475,55 @@ namespace UTChecker
                     sTCFuncName0 = ReadStringFromExcelCell(excelRange.Cells[i, ++dCol], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
                     sTCNote = ReadStringFromExcelCell(excelRange.Cells[i, ++dCol], Constants.StringTokens.DEFAULT_INVALID_VALUE, true);
 
-
                     // Determine the test means.
                     eTestType = DetermineTestType(sTCNote);
                     eTestMeans = DetermineTestMeans(eTestType);
 
+
+                    //
+                    // Check & modify Note
+                    //
+                    //if (eTestMeans == TestMeans.TEST_SCRIPT)
+                    //{
+
+                    //    if (Constants.StringTokens.NA == sTCFuncName0)
+                    //    {
+
+                    //    }
+                    //    else
+                    //    {
+                    //        string c = a_sSourceFileName.Replace(".java", "Test");
+                    //        string f = sTCFuncName0 + ".txt";
+
+                    //        var logItems = new Tuple<string, string, List<TestLog>>(c, f, a_lsTestLogs);
+                    //        searchThread = new Thread(new ParameterizedThreadStart(SearchTestLog));
+                    //        searchThread.Priority = ThreadPriority.AboveNormal;
+                    //        //searchThread.IsBackground = true;
+                    //        searchThread.Start(logItems);
+
+                    //        //task = SearchTestLogEx;
+                    //        //asyncResult = task.BeginInvoke(logItems, null, null);
+
+                    //        //Logger.Print($"Search log {f}", Logger.PrintOption.File);
+                    //    }
+                    //}
+
+
+
+                    sChapterInSUTS = Constants.StringTokens.ERROR;
+
+                    if (a_wordDoc != null && !a_sSourceFileName.StartsWith(Constants.StringTokens.NA))
+                    {
+                        string className = a_sSourceFileName.Replace(".java", "");
+                        string TDSExcelName = a_sTDSFile;
+
+                        var items = new Tuple<Word.Document, string, string>(a_wordDoc, className, TDSExcelName);
+                        searchThread = new Thread(new ParameterizedThreadStart(SUTS_FindSectionOfClass_JavaByThread));
+                        searchThread.Priority = ThreadPriority.AboveNormal;
+                        //searchThread.IsBackground = true;
+                        searchThread.Start(items);
+
+                    }
 
 
                     // --------------------------------------------------
@@ -493,7 +569,6 @@ namespace UTChecker
                             sMethodName = sClassName + ArrangeAndCheckMethodName(sMethodName0);
                         }
                     }
-
 
 
                     //
@@ -598,6 +673,8 @@ namespace UTChecker
                     }
 
 
+  
+                    // call eTestLog
                     eTestLog = new TestLog();
 
                     //
@@ -619,44 +696,57 @@ namespace UTChecker
                             //
                             // find test log
                             //
+                            string className = a_sSourceFileName.Replace(".java", "Test");
+                            string fileName = sTCFuncName0 + ".txt";
 
 
-                            string testcase = a_sSourceFileName.Replace(".java", "Test.") + sTCFuncName0;
-
-                            int index = 0;
-                            bool bFound = false;
-
-                            // find log
-                            foreach (TestLog t in a_lsTestLogs)
+                            Predicate<TestLog> FindValue = delegate (TestLog obj)
                             {
-                                if (testcase.Equals(t.ToString()))
-                                {
-                                    bFound = true;
-                                    break;
-                                }
+                                return (obj.ClassName == className) && (obj.FileName == fileName);
+                            };
 
-                                index++;
+
+                            int index = a_lsTestLogs.FindIndex(FindValue);
+
+                            if (index >= 0)
+                            {
+                                a_lsTestLogs[index].Increment();
+                                eTestLog = a_lsTestLogs[index];
                             }
 
-                            if (bFound)
-                            {
 
-                                try
-                                {
-                                    a_lsTestLogs[index].Increment();
-                                    eTestLog = a_lsTestLogs[index];
 
-                                }
-                                catch (Exception e)
-                                {
-                                    Logger.Print(sFuncName, e.Message);
-                                    eTestLog = new TestLog();
-                                }
-                            }
+                            //while (!asyncResult.IsCompleted)
+                            //{
+                            //    Thread.SpinWait(0);
+                            //}
+                            //// 
+                            //int index = task.EndInvoke(asyncResult);
 
+                            //searchThread.Join();
+
+                            //int index = gLogIndex;
+                            //if (index >= 0)
+                            //{
+                            //    a_lsTestLogs[index].Increment();
+                            //    eTestLog = a_lsTestLogs[index];
+
+                            //    //Logger.Print($"Found log {eTestLog.FileName}", Logger.PrintOption.File);
+                            //}
                         }
                     }
 
+                    //
+                    // Find SUTS
+                    //
+                    //sChapterInSUTS = Constants.StringTokens.ERROR;
+
+                    //if (a_wordDoc != null && !a_sSourceFileName.StartsWith(Constants.StringTokens.NA))
+                    //{
+                    //    string className = a_sSourceFileName.Replace(".java", "");
+                    //    string docName = a_sTDSFile;
+                    //    sChapterInSUTS = SUTS_FindSectionOfClass_Java(a_wordDoc, className, docName);
+                    //}
 
 
                     // Determine the test case source file name.
@@ -671,20 +761,8 @@ namespace UTChecker
                     }
 
 
-
-                   
-                    //
-                    // Find SUTS
-                    //
-                    string sChapterInSUTS = Constants.StringTokens.ERROR;
-
-                    if (!a_sSourceFileName.StartsWith(Constants.StringTokens.NA))
-                    {
-                        string className = a_sSourceFileName.Replace(".java", "");
-                        string docName = a_sTDSFile;
-                        sChapterInSUTS = SUTS_FindSectionOfClass_Java(a_wordDoc, className, docName);
-                    }
-
+                    searchThread.Join();
+                    sChapterInSUTS = gSUTSChapter;
 
 
                     //
@@ -1006,38 +1084,24 @@ namespace UTChecker
 
                     // new a objec TestLog for init.
                     TestLog eTestLog = new TestLog();
+                    string fileName = a_sMethodName + "." + sTCLabelName + ".txt";
 
-                    string testcase = a_sMethodName + "." + sTCLabelName;
 
-                    
-
-                    int index = 0;
-                    bool isFound = false;
-
-                    // find log
-                    foreach (TestLog t in a_lsTestLogs)
+                    Predicate<TestLog> FindValue = delegate (TestLog obj)
                     {
-                        if (t.ToString().Equals(testcase))
-                        {
-                            isFound = true;
-                            break;
-                        }
+                        return obj.FileName == fileName;
+                    };
 
-                        index++;
+
+                    int index = a_lsTestLogs.FindIndex(FindValue);
+
+                    if (index >= 0)
+                    {
+                        a_lsTestLogs[index].Increment();
+                        eTestLog = a_lsTestLogs[index];
                     }
 
-                    if (isFound)
-                    {
-                        try
-                        {
-                            a_lsTestLogs[index].Increment();
-                            eTestLog = a_lsTestLogs[index];
-                        }
-                        catch (Exception e)
-                        {
-                            Logger.Print("", e.Message);
-                        }
-                    }
+
 
 
                     //
